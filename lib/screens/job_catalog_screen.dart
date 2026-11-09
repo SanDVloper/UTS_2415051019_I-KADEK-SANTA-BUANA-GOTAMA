@@ -1,10 +1,70 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
+import '../models/job_model.dart';
 import 'job_detail_screen.dart';
 
 class JobCatalogScreen extends StatelessWidget {
   const JobCatalogScreen({super.key});
+
+  static final List<JobModel> dummyJobs = [
+    JobModel(
+      id: 'job-001',
+      title: 'Transkripsi Audio Webinar Bahasa Indonesia',
+      description: 'Mengetik naskah rekaman webinar 45 menit ke dalam Google Docs dengan ejaan yang rapi.',
+      category: 'Transkripsi & Pengetikan',
+      wage: 50000,
+      employerName: 'PT Inovasi Inklusif',
+      location: 'Denpasar Barat',
+      distanceKm: 1.2,
+      requiredSkills: const ['Mengetik Cepat', 'Membaca Teks', 'Komunikasi Teks'],
+      status: 'Active',
+      paymentStatus: 'Locked',
+      createdAt: DateTime.now(),
+    ),
+    JobModel(
+      id: 'job-002',
+      title: 'Input Data Rekam Pasien Klinik',
+      description: 'Memindahkan berkas fisik ke format spreadsheet Google Sheet online secara akurat.',
+      category: 'Entri Data & Spreadsheet',
+      wage: 75000,
+      employerName: 'Klinik Harapan Sehat',
+      location: 'Denpasar Selatan',
+      distanceKm: 2.5,
+      requiredSkills: const ['Excel', 'Ketelitian', 'Fleksibel'],
+      status: 'Active',
+      paymentStatus: 'Locked',
+      createdAt: DateTime.now(),
+    ),
+    JobModel(
+      id: 'job-003',
+      title: 'Desain Konten Sosialisasi Disabilitas',
+      description: 'Membuat 3 poster edukasi menggunakan template Canva siap pakai.',
+      category: 'Desain Grafis',
+      wage: 100000,
+      employerName: 'Yayasan Peduli Sesama',
+      location: 'Denpasar Timur',
+      distanceKm: 3.8,
+      requiredSkills: const ['Canva', 'Komunikasi Teks'],
+      status: 'Active',
+      paymentStatus: 'Locked',
+      createdAt: DateTime.now(),
+    ),
+    JobModel(
+      id: 'job-004',
+      title: 'Pemeriksaan Ejaan & Koreksi Naskah Buku',
+      description: 'Proofreading bab pengantar buku cerita anak berbahasa Indonesia.',
+      category: 'Pemeriksaan Teks',
+      wage: 60000,
+      employerName: 'Penerbit Mandiri',
+      location: 'Denpasar Utara',
+      distanceKm: 4.1,
+      requiredSkills: const ['Bahasa Indonesia', 'Koreksi Teks'],
+      status: 'Active',
+      paymentStatus: 'Locked',
+      createdAt: DateTime.now(),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -83,9 +143,9 @@ class JobCatalogScreen extends StatelessWidget {
 
   Widget _buildListView(BuildContext context) {
     return ListView.separated(
-      itemCount: 4,
+      itemCount: dummyJobs.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (context, index) => _buildJobCard(context, index),
+      itemBuilder: (context, index) => _buildJobCard(context, dummyJobs[index]),
     );
   }
 
@@ -97,49 +157,12 @@ class JobCatalogScreen extends StatelessWidget {
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
-      itemCount: 4,
-      itemBuilder: (context, index) => _buildJobCard(context, index),
+      itemCount: dummyJobs.length,
+      itemBuilder: (context, index) => _buildJobCard(context, dummyJobs[index]),
     );
   }
 
-  Widget _buildJobCard(BuildContext context, int index) {
-    final jobs = [
-      {
-        'title': 'Transkripsi Audio Webinar Bahasa Indonesia',
-        'employer': 'PT Inovasi Inklusif',
-        'distance': '📍 1.2 km',
-        'match': '⭐ 92% Match (5/5 Skill)',
-        'wage': 'Rp 50.000',
-        'tags': ['Mengetik', 'Membaca', 'Remote'],
-      },
-      {
-        'title': 'Input Data Rekam Pasien Klinik',
-        'employer': 'Klinik Harapan Sehat',
-        'distance': '📍 2.5 km',
-        'match': '⭐ 88% Match (4/5 Skill)',
-        'wage': 'Rp 75.000',
-        'tags': ['Excel', 'Ketelitian', 'Fleksibel'],
-      },
-      {
-        'title': 'Desain Konten Sosialisasi Disabilitas',
-        'employer': 'Yayasan Peduli Sesama',
-        'distance': '📍 3.8 km',
-        'match': '⭐ 84% Match (4/5 Skill)',
-        'wage': 'Rp 100.000',
-        'tags': ['Canva', 'Komunikasi Teks'],
-      },
-      {
-        'title': 'Pemeriksaan Ejaan & Koreksi Naskah Buku',
-        'employer': 'Penerbit Mandiri',
-        'distance': '📍 4.1 km',
-        'match': '⭐ 82% Match (4/5 Skill)',
-        'wage': 'Rp 60.000',
-        'tags': ['Bahasa Indonesia', 'Koreksi Teks'],
-      },
-    ];
-
-    final job = jobs[index % jobs.length];
-
+  Widget _buildJobCard(BuildContext context, JobModel job) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -156,7 +179,7 @@ class JobCatalogScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    job['match'] as String,
+                    '⭐ ${job.requiredSkills.length}/${job.requiredSkills.length} Kemampuan Cocok',
                     style: const TextStyle(
                       color: AppColors.secondary,
                       fontSize: 11,
@@ -165,21 +188,21 @@ class JobCatalogScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  job['distance'] as String,
+                  '📍 ${job.distanceKm} km',
                   style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              job['title'] as String,
+              job.title,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Text(
-              job['employer'] as String,
+              job.employerName,
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
             const Spacer(),
@@ -191,7 +214,7 @@ class JobCatalogScreen extends StatelessWidget {
                   children: [
                     const Text('Upah Terkunci', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
                     Text(
-                      job['wage'] as String,
+                      job.formattedWage,
                       style: const TextStyle(
                         color: AppColors.secondary,
                         fontWeight: FontWeight.bold,
@@ -205,7 +228,7 @@ class JobCatalogScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => JobDetailScreen(jobData: job),
+                        builder: (_) => JobDetailScreen(job: job),
                       ),
                     );
                   },
