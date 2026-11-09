@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
@@ -15,7 +14,6 @@ class AppTheme {
         error: AppColors.danger,
       ),
       scaffoldBackgroundColor: AppColors.background,
-      textTheme: GoogleFonts.plusJakartaSansTextTheme(),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textMain,
@@ -54,9 +52,6 @@ class AppTheme {
         secondary: AppColors.hcSecondary,
         surface: AppColors.hcSurface,
         error: Color(0xFFFF4444),
-      ),
-      textTheme: GoogleFonts.plusJakartaSansTextTheme(
-        ThemeData.dark().textTheme,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.hcSurface,
