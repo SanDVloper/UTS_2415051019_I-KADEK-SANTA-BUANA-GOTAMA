@@ -101,6 +101,20 @@ class JobProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Helper untuk demonstrasi/evaluasi UTS: Simulasi Error State
+  void simulateError([String? message]) {
+    _errorMessage = message ?? 'Koneksi ke endpoint REST API terputus (SocketException: Connection refused).';
+    _state = ViewState.error;
+    notifyListeners();
+  }
+
+  // Helper untuk demonstrasi/evaluasi UTS: Simulasi Empty State
+  void simulateEmpty() {
+    _jobs.clear();
+    _state = ViewState.empty;
+    notifyListeners();
+  }
+
   // Tambah Lowongan (Create)
   void addJob(JobModel newJob) {
     _jobs.insert(0, newJob);

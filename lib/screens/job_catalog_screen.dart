@@ -4,7 +4,10 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../models/job_model.dart';
 import '../providers/job_provider.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/error_state_widget.dart';
 import '../widgets/job_card.dart';
+import '../widgets/loading_state_widget.dart';
 import 'job_detail_screen.dart';
 
 class JobCatalogScreen extends StatelessWidget {
@@ -25,7 +28,7 @@ class JobCatalogScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header & Filter Row
+                // Header & Action Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -49,6 +52,56 @@ class JobCatalogScreen extends StatelessWidget {
                     ),
                     Row(
                       children: [
+                        // Tombol simulasi state untuk dokumentasi & penilaian UTS
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.tune, color: AppColors.primary),
+                          tooltip: 'Uji Simulasi State UI (UTS)',
+                          onSelected: (value) {
+                            switch (value) {
+                              case 'refresh':
+                                jobProvider.fetchJobs();
+                                break;
+                              case 'error':
+                                jobProvider.simulateError();
+                                break;
+                              case 'empty':
+                                jobProvider.simulateEmpty();
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'refresh',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.refresh, size: 18, color: AppColors.secondary),
+                                  SizedBox(width: 8),
+                                  Text('1. Normal Fetch (Loading -> Loaded)'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'error',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.error_outline, size: 18, color: AppColors.danger),
+                                  SizedBox(width: 8),
+                                  Text('2. Simulasi Error State'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'empty',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.inbox_outlined, size: 18, color: AppColors.textMuted),
+                                  SizedBox(width: 8),
+                                  Text('3. Simulasi Empty State'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                         IconButton(
                           icon: const Icon(Icons.refresh, color: AppColors.primary),
                           tooltip: 'Muat Ulang dari REST API',
@@ -94,7 +147,7 @@ class JobCatalogScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // State Handling: Loading, Error, Empty, Loaded
+                // State Handling: LoadingStateWidget, ErrorStateWidget, EmptyStateWidget, Loaded
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () => jobProvider.fetchJobs(),
@@ -111,59 +164,32 @@ class JobCatalogScreen extends StatelessWidget {
 
   Widget _buildStateContent(BuildContext context, JobProvider provider, List<JobModel> jobs, bool isCompact) {
     if (provider.state == ViewState.loading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 14),
-            Text(
-              'Menghubungkan ke REST API Endpoint...',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-            ),
-          ],
-        ),
+      return const LoadingStateWidget(
+        message: 'Mengambil lowongan pekerjaan dari REST API server...',
       );
     }
 
     if (provider.state == ViewState.error) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.cloud_off_outlined, size: 48, color: AppColors.danger),
-            const SizedBox(height: 12),
-            Text(
-              'Gagal memuat data dari server:\n${provider.errorMessage ?? "Koneksi terputus"}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.danger, fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => provider.fetchJobs(),
-              icon: const Icon(Icons.refresh, size: 16),
-              label: const Text('Coba Lagi'),
-            ),
-          ],
-        ),
+      return ErrorStateWidget(
+        errorMessage: provider.errorMessage ?? 'Gagal terhubung ke REST API server.',
+        onRetry: () => provider.fetchJobs(),
       );
     }
 
     if (jobs.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.search_off, size: 48, color: AppColors.textMuted),
-            const SizedBox(height: 12),
-            const Text('Tidak ada lowongan yang sesuai kriteria pencarian.', style: TextStyle(color: AppColors.textMuted)),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => provider.setSearchQuery(''),
-              child: const Text('Reset Pencarian'),
-            ),
-          ],
-        ),
+      return EmptyStateWidget(
+        title: 'Tidak Ada Lowongan Ditemukan',
+        description: provider.searchQuery.isNotEmpty
+            ? 'Tidak ada lowongan yang cocok dengan kata kunci "${provider.searchQuery}". Silakan periksa kembali ejaan pencarian Anda.'
+            : 'Belum ada lowongan pekerjaan yang tersedia saat ini.',
+        actionLabel: provider.searchQuery.isNotEmpty ? 'Reset Pencarian' : 'Muat Ulang Data',
+        onAction: () {
+          if (provider.searchQuery.isNotEmpty) {
+            provider.setSearchQuery('');
+          } else {
+            provider.fetchJobs();
+          }
+        },
       );
     }
 
