@@ -1,73 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../models/job_model.dart';
+import '../providers/job_provider.dart';
 import 'job_detail_screen.dart';
 
 class JobCatalogScreen extends StatelessWidget {
   const JobCatalogScreen({super.key});
 
-  static final List<JobModel> dummyJobs = [
-    JobModel(
-      id: 'job-001',
-      title: 'Transkripsi Audio Webinar Bahasa Indonesia',
-      description: 'Mengetik naskah rekaman webinar 45 menit ke dalam Google Docs dengan ejaan yang rapi.',
-      category: 'Transkripsi & Pengetikan',
-      wage: 50000,
-      employerName: 'PT Inovasi Inklusif',
-      location: 'Denpasar Barat',
-      distanceKm: 1.2,
-      requiredSkills: const ['Mengetik Cepat', 'Membaca Teks', 'Komunikasi Teks'],
-      status: 'Active',
-      paymentStatus: 'Locked',
-      createdAt: DateTime.now(),
-    ),
-    JobModel(
-      id: 'job-002',
-      title: 'Input Data Rekam Pasien Klinik',
-      description: 'Memindahkan berkas fisik ke format spreadsheet Google Sheet online secara akurat.',
-      category: 'Entri Data & Spreadsheet',
-      wage: 75000,
-      employerName: 'Klinik Harapan Sehat',
-      location: 'Denpasar Selatan',
-      distanceKm: 2.5,
-      requiredSkills: const ['Excel', 'Ketelitian', 'Fleksibel'],
-      status: 'Active',
-      paymentStatus: 'Locked',
-      createdAt: DateTime.now(),
-    ),
-    JobModel(
-      id: 'job-003',
-      title: 'Desain Konten Sosialisasi Disabilitas',
-      description: 'Membuat 3 poster edukasi menggunakan template Canva siap pakai.',
-      category: 'Desain Grafis',
-      wage: 100000,
-      employerName: 'Yayasan Peduli Sesama',
-      location: 'Denpasar Timur',
-      distanceKm: 3.8,
-      requiredSkills: const ['Canva', 'Komunikasi Teks'],
-      status: 'Active',
-      paymentStatus: 'Locked',
-      createdAt: DateTime.now(),
-    ),
-    JobModel(
-      id: 'job-004',
-      title: 'Pemeriksaan Ejaan & Koreksi Naskah Buku',
-      description: 'Proofreading bab pengantar buku cerita anak berbahasa Indonesia.',
-      category: 'Pemeriksaan Teks',
-      wage: 60000,
-      employerName: 'Penerbit Mandiri',
-      location: 'Denpasar Utara',
-      distanceKm: 4.1,
-      requiredSkills: const ['Bahasa Indonesia', 'Koreksi Teks'],
-      status: 'Active',
-      paymentStatus: 'Locked',
-      createdAt: DateTime.now(),
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final jobProvider = context.watch<JobProvider>();
+    final jobs = jobProvider.filteredJobs;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < AppConstants.compactBreakpoint;
@@ -82,21 +28,23 @@ class JobCatalogScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Katalog Rekomendasi Pekerjaan',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Disaring berdasarkan Smart Matching keahlian & lokasi Anda',
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Katalog Rekomendasi Pekerjaan',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Disaring berdasarkan Smart Matching keahlian & lokasi Anda',
+                            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                     Chip(
                       backgroundColor: AppColors.primaryLight,
@@ -111,9 +59,16 @@ class JobCatalogScreen extends StatelessWidget {
 
                 // Search Bar
                 TextField(
+                  onChanged: (val) => jobProvider.setSearchQuery(val),
                   decoration: InputDecoration(
                     hintText: 'Cari judul lowongan, skill, atau instansi...',
                     prefixIcon: const Icon(Icons.search),
+                    suffixIcon: jobProvider.searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => jobProvider.setSearchQuery(''),
+                          )
+                        : null,
                     filled: true,
                     fillColor: AppColors.surface,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -129,9 +84,9 @@ class JobCatalogScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Responsive List vs Grid View
+                // State Handling: Loading, Error, Empty, Loaded
                 Expanded(
-                  child: isCompact ? _buildListView(context) : _buildGridView(context),
+                  child: _buildStateContent(context, jobProvider, jobs, isCompact),
                 ),
               ],
             ),
@@ -141,15 +96,59 @@ class JobCatalogScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildListView(BuildContext context) {
+  Widget _buildStateContent(BuildContext context, JobProvider provider, List<JobModel> jobs, bool isCompact) {
+    if (provider.state == ViewState.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (provider.state == ViewState.error) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: AppColors.danger),
+            const SizedBox(height: 12),
+            Text('Terjadi kesalahan: ${provider.errorMessage ?? "Gagal memuat data"}'),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () => provider.fetchJobs(),
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (jobs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search_off, size: 48, color: AppColors.textMuted),
+            const SizedBox(height: 12),
+            const Text('Tidak ada lowongan yang sesuai kriteria pencarian.', style: TextStyle(color: AppColors.textMuted)),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => provider.setSearchQuery(''),
+              child: const Text('Reset Pencarian'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return isCompact ? _buildListView(context, provider, jobs) : _buildGridView(context, provider, jobs);
+  }
+
+  Widget _buildListView(BuildContext context, JobProvider provider, List<JobModel> jobs) {
     return ListView.separated(
-      itemCount: dummyJobs.length,
+      itemCount: jobs.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (context, index) => _buildJobCard(context, dummyJobs[index]),
+      itemBuilder: (context, index) => _buildJobCard(context, provider, jobs[index]),
     );
   }
 
-  Widget _buildGridView(BuildContext context) {
+  Widget _buildGridView(BuildContext context, JobProvider provider, List<JobModel> jobs) {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -157,12 +156,14 @@ class JobCatalogScreen extends StatelessWidget {
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
-      itemCount: dummyJobs.length,
-      itemBuilder: (context, index) => _buildJobCard(context, dummyJobs[index]),
+      itemCount: jobs.length,
+      itemBuilder: (context, index) => _buildJobCard(context, provider, jobs[index]),
     );
   }
 
-  Widget _buildJobCard(BuildContext context, JobModel job) {
+  Widget _buildJobCard(BuildContext context, JobProvider provider, JobModel job) {
+    final isSaved = provider.isBookmarked(job.id);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -187,9 +188,22 @@ class JobCatalogScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  '📍 ${job.distanceKm} km',
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                Row(
+                  children: [
+                    Text(
+                      '📍 ${job.distanceKm} km',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: Icon(
+                        isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        color: isSaved ? AppColors.primary : AppColors.textMuted,
+                        size: 20,
+                      ),
+                      onPressed: () => provider.toggleBookmark(job.id),
+                    ),
+                  ],
                 ),
               ],
             ),

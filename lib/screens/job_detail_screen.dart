@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../models/job_model.dart';
+import '../providers/job_provider.dart';
 
 class JobDetailScreen extends StatelessWidget {
   final JobModel? job;
@@ -11,10 +13,16 @@ class JobDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final jobProvider = context.watch<JobProvider>();
+    final currentId = job?.id ?? jobData?['id']?.toString() ?? 'job-001';
+    final isBookmarked = jobProvider.isBookmarked(currentId);
+    final isAlreadyActive = jobProvider.activeJob?.id == currentId;
+
     final title = job?.title ?? jobData?['title'] ?? 'Transkripsi Audio Webinar Bahasa Indonesia';
     final employer = job?.employerName ?? jobData?['employer'] ?? 'PT Inovasi Inklusif';
     final wageStr = job?.formattedWage ?? jobData?['wage'] ?? 'Rp 50.000';
     final distanceStr = job != null ? '📍 ${job!.distanceKm} km' : jobData?['distance'] ?? '📍 1.2 km';
+    final category = job?.category ?? 'Transkripsi & Teks Mandiri';
     final description = job?.description ??
         'Pemberi kerja memerlukan bantuan untuk mentranskripsikan rekaman audio webinar 45 menit ke dalam dokumen Google Docs atau Microsoft Word. Rekaman suara jernih dan bebas kebisingan.\n\n'
             'Ketentuan Pengumpulan:\n'
@@ -27,10 +35,20 @@ class JobDetailScreen extends StatelessWidget {
         title: const Text('Detail Pekerjaan'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.bookmark_border),
+            icon: Icon(
+              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+              color: isBookmarked ? AppColors.primary : null,
+            ),
+            tooltip: isBookmarked ? 'Hapus dari Favorit' : 'Simpan ke Favorit',
             onPressed: () {
+              jobProvider.toggleBookmark(currentId);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Pekerjaan disimpan ke Favorit')),
+                SnackBar(
+                  content: Text(
+                    isBookmarked ? 'Pekerjaan dihapus dari Favorit' : 'Pekerjaan disimpan ke Favorit!',
+                  ),
+                  duration: const Duration(seconds: 1),
+                ),
               );
             },
           ),
@@ -41,22 +59,32 @@ class JobDetailScreen extends StatelessWidget {
           final isCompact = constraints.maxWidth < AppConstants.compactBreakpoint;
 
           if (isCompact) {
-            return _buildCompactDetail(context, title, employer, wageStr, distanceStr, description);
+            return _buildCompactDetail(context, currentId, title, employer, category, wageStr, distanceStr, description, isAlreadyActive);
           } else {
-            return _buildExpandedDetail(context, title, employer, wageStr, distanceStr, description);
+            return _buildExpandedDetail(context, currentId, title, employer, category, wageStr, distanceStr, description, isAlreadyActive);
           }
         },
       ),
     );
   }
 
-  Widget _buildCompactDetail(BuildContext context, String title, String employer, String wage, String distance, String description) {
+  Widget _buildCompactDetail(
+    BuildContext context,
+    String jobId,
+    String title,
+    String employer,
+    String category,
+    String wage,
+    String distance,
+    String description,
+    bool isAlreadyActive,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildJobHeader(title, employer, distance),
+          _buildJobHeader(title, employer, distance, category),
           const SizedBox(height: 16),
           _buildSmartMatchCard(),
           const SizedBox(height: 16),
@@ -64,13 +92,23 @@ class JobDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _buildJobDescription(description),
           const SizedBox(height: 24),
-          _buildActionButtons(context),
+          _buildActionButtons(context, jobId, isAlreadyActive),
         ],
       ),
     );
   }
 
-  Widget _buildExpandedDetail(BuildContext context, String title, String employer, String wage, String distance, String description) {
+  Widget _buildExpandedDetail(
+    BuildContext context,
+    String jobId,
+    String title,
+    String employer,
+    String category,
+    String wage,
+    String distance,
+    String description,
+    bool isAlreadyActive,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Row(
@@ -82,7 +120,7 @@ class JobDetailScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildJobHeader(title, employer, distance),
+                _buildJobHeader(title, employer, distance, category),
                 const SizedBox(height: 20),
                 _buildJobDescription(description),
               ],
@@ -98,7 +136,7 @@ class JobDetailScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 _buildEscrowWageCard(wage),
                 const SizedBox(height: 20),
-                _buildActionButtons(context),
+                _buildActionButtons(context, jobId, isAlreadyActive),
               ],
             ),
           ),
@@ -107,7 +145,7 @@ class JobDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildJobHeader(String title, String employer, String distance) {
+  Widget _buildJobHeader(String title, String employer, String distance, String category) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -117,9 +155,9 @@ class JobDetailScreen extends StatelessWidget {
             color: AppColors.primaryLight,
             borderRadius: BorderRadius.circular(4),
           ),
-          child: const Text(
-            'Kategori: Transkripsi & Teks Mandiri',
-            style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold),
+          child: Text(
+            'Kategori: $category',
+            style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 8),
@@ -138,9 +176,9 @@ class JobDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.secondary, width: 2),
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -213,7 +251,7 @@ class JobDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(BuildContext context, String jobId, bool isAlreadyActive) {
     return Row(
       children: [
         Expanded(
@@ -227,20 +265,23 @@ class JobDetailScreen extends StatelessWidget {
         Expanded(
           flex: 2,
           child: ElevatedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Pekerjaan Diterima! Upah otomatis terkunci aman di Escrow.'),
-                  backgroundColor: AppColors.secondary,
-                ),
-              );
-              Navigator.pop(context);
-            },
+            onPressed: isAlreadyActive
+                ? null
+                : () {
+                    context.read<JobProvider>().acceptJob(jobId);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Pekerjaan Diterima! Upah otomatis terkunci aman di Escrow.'),
+                        backgroundColor: AppColors.secondary,
+                      ),
+                    );
+                    Navigator.pop(context);
+                  },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
+              backgroundColor: isAlreadyActive ? Colors.grey : AppColors.secondary,
               minimumSize: const Size(double.infinity, 48),
             ),
-            child: const Text('✓ Terima Pekerjaan Ini'),
+            child: Text(isAlreadyActive ? '✓ Sedang Dikerjakan' : '✓ Terima Pekerjaan Ini'),
           ),
         ),
       ],

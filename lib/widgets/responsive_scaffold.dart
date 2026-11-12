@@ -37,7 +37,7 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
       DashboardScreen(onNavigateToTab: _onDestinationSelected),
       const JobCatalogScreen(),
       const CreateJobScreen(),
-      const ActiveJobScreen(),
+      ActiveJobScreen(onNavigateToTab: _onDestinationSelected),
       const ProfileScreen(),
     ];
 

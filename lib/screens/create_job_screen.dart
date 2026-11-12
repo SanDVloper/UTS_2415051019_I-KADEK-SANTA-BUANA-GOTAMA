@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
+import '../models/job_model.dart';
+import '../providers/job_provider.dart';
 
 class CreateJobScreen extends StatefulWidget {
   const CreateJobScreen({super.key});
@@ -29,6 +32,39 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
     _descController.dispose();
     _wageController.dispose();
     super.dispose();
+  }
+
+  void _submitForm() {
+    if (_formKey.currentState!.validate()) {
+      final wage = int.tryParse(_wageController.text.trim()) ?? 50000;
+      final newJob = JobModel(
+        id: 'job-${DateTime.now().millisecondsSinceEpoch}',
+        title: _titleController.text.trim(),
+        description: _descController.text.trim(),
+        category: _selectedCategory,
+        wage: wage,
+        employerName: 'PT Inovasi Inklusif',
+        location: 'Denpasar Barat',
+        distanceKm: 1.5,
+        requiredSkills: [_selectedCategory.split(' ').first, 'Komunikasi Teks'],
+        status: 'Available',
+        paymentStatus: 'Locked',
+        createdAt: DateTime.now(),
+      );
+
+      context.read<JobProvider>().addJob(newJob);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lowongan "${newJob.title}" berhasil dipublikasikan & masuk ke State Manajemen!'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
+
+      _titleController.clear();
+      _descController.clear();
+      _wageController.clear();
+    }
   }
 
   @override
@@ -186,16 +222,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
 
           // Submit Button
           ElevatedButton(
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Lowongan Berhasil Dibuat & Dipublikasikan!'),
-                    backgroundColor: AppColors.secondary,
-                  ),
-                );
-              }
-            },
+            onPressed: _submitForm,
             child: const Text('Publikasikan Lowongan & Cari Worker'),
           ),
         ],
