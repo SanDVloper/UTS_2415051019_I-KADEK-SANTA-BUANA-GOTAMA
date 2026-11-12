@@ -144,17 +144,43 @@ class ProfileScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Mode Kontras Tinggi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                          subtitle: const Text('Mengoptimalkan rasio kontras warna latar belakang dan teks', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                          title: const Text('Mode Kontras Tinggi (WCAG AAA)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          subtitle: const Text('Rasio kontras warna 7:1 untuk kenyamanan disabilitas netra/low vision', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                           value: accessProvider.isHighContrast,
-                          onChanged: (_) => accessProvider.toggleHighContrast(),
+                          onChanged: (_) {
+                            accessProvider.toggleHighContrast();
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  accessProvider.isHighContrast
+                                      ? 'Mode Kontras Tinggi WCAG AAA (7:1) Aktif'
+                                      : 'Kembali ke Tema Standar Material 3',
+                                ),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
                         ),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
                           title: const Text('Ukuran Font Ekstra Besar (+20%)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                          subtitle: const Text('Meningkatkan keterbacaan teks untuk kenyamanan visual', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                          subtitle: const Text('TextScaler 1.2x untuk meningkatkan keterbacaan secara global', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                           value: accessProvider.isLargeFont,
-                          onChanged: (_) => accessProvider.toggleLargeFont(),
+                          onChanged: (_) {
+                            accessProvider.toggleLargeFont();
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  accessProvider.isLargeFont
+                                      ? 'Skala Teks Ekstra Besar (1.2x) Aktif'
+                                      : 'Skala Teks Standar (1.0x) Aktif',
+                                ),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
                         ),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,

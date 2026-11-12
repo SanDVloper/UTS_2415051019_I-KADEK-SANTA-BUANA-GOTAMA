@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
+  AppTheme._();
+
   // Standard Light Theme
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+      brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         primary: AppColors.primary,
@@ -38,10 +41,15 @@ class AppTheme {
           ),
         ),
       ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.surface,
+        side: const BorderSide(color: AppColors.border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
     );
   }
 
-  // High Contrast Theme (WCAG AAA)
+  // High Contrast Theme (WCAG AAA Compliance for Visual Accessibility)
   static ThemeData get highContrastTheme {
     return ThemeData(
       useMaterial3: true,
@@ -51,7 +59,7 @@ class AppTheme {
         primary: AppColors.hcPrimary,
         secondary: AppColors.hcSecondary,
         surface: AppColors.hcSurface,
-        error: Color(0xFFFF4444),
+        error: Color(0xFFFF5252),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.hcSurface,
@@ -65,6 +73,35 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: AppColors.hcBorder, width: 2),
         ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.hcPrimary,
+          foregroundColor: Colors.black,
+          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          minimumSize: const Size(double.infinity, 48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: Colors.white, width: 1.5),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.hcPrimary,
+          side: const BorderSide(color: AppColors.hcPrimary, width: 2),
+          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.hcSurface,
+        labelStyle: const TextStyle(color: AppColors.hcTextMain, fontWeight: FontWeight.bold),
+        side: const BorderSide(color: AppColors.hcBorder, width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.hcBorder,
+        thickness: 1.5,
       ),
     );
   }
