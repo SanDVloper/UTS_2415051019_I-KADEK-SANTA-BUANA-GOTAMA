@@ -13,6 +13,48 @@ import 'job_detail_screen.dart';
 class JobCatalogScreen extends StatelessWidget {
   const JobCatalogScreen({super.key});
 
+  Future<bool> _showDeleteConfirmation(BuildContext context, JobModel item) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 44),
+        title: const Text('Konfirmasi Hapus Data', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Apakah Anda yakin ingin menghapus data lowongan ini dari Database Supabase?',
+              style: const TextStyle(fontSize: 13, color: AppColors.textMain),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                '• Judul: ${item.title}\n• Sumber: ${item.dataSourceLabel}\n• ID: ${item.id}',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF991B1B)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            child: const Text('Ya, Hapus Data'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final jobProvider = context.watch<JobProvider>();
@@ -253,18 +295,52 @@ class JobCatalogScreen extends StatelessWidget {
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final item = jobs[index];
-        return JobCard(
-          job: item,
-          isBookmarked: provider.isBookmarked(item.id),
-          onBookmarkToggle: () => provider.toggleBookmark(item.id),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => JobDetailScreen(job: item),
-              ),
-            );
+        return Dismissible(
+          key: Key('job-${item.id}-$index'),
+          direction: DismissDirection.endToStart,
+          confirmDismiss: (direction) async {
+            return await _showDeleteConfirmation(context, item);
           },
+          onDismissed: (_) async {
+            await provider.deleteJob(item.id);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Lowongan "${item.title}" berhasil dihapus dari Database.'),
+                  backgroundColor: AppColors.danger,
+                ),
+              );
+            }
+          },
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            decoration: BoxDecoration(
+              color: AppColors.danger,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Icon(Icons.delete_forever, color: Colors.white, size: 28),
+                SizedBox(width: 8),
+                Text('HAPUS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              ],
+            ),
+          ),
+          child: JobCard(
+            job: item,
+            isBookmarked: provider.isBookmarked(item.id),
+            onBookmarkToggle: () => provider.toggleBookmark(item.id),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => JobDetailScreen(job: item),
+                ),
+              );
+            },
+          ),
         );
       },
     );

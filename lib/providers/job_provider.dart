@@ -270,12 +270,21 @@ class JobProvider extends ChangeNotifier {
     }
   }
 
-  // Hapus Lowongan (Delete)
-  void deleteJob(String jobId) {
-    _jobs.removeWhere((j) => j.id == jobId);
-    if (_activeJobId == jobId) {
-      _activeJobId = null;
+  // DELETE: Menghapus lowongan dari Database Supabase & state lokal
+  Future<bool> deleteJob(String jobId) async {
+    try {
+      final success = await _repository.deleteJobFromDatabase(jobId);
+      _jobs.removeWhere((j) => j.id == jobId);
+      _bookmarkedJobIds.remove(jobId);
+      if (_activeJobId == jobId) {
+        _activeJobId = _jobs.isNotEmpty ? _jobs.first.id : null;
+      }
+      notifyListeners();
+      return success;
+    } catch (e) {
+      _errorMessage = 'Gagal menghapus lowongan dari database: $e';
+      notifyListeners();
+      return false;
     }
-    notifyListeners();
   }
 }

@@ -14,6 +14,89 @@ class JobDetailScreen extends StatelessWidget {
 
   const JobDetailScreen({super.key, this.job, this.jobData});
 
+  void _confirmDelete(BuildContext context, JobModel targetJob) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 44),
+        title: const Text(
+          'Konfirmasi Hapus Data',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Apakah Anda yakin ingin menghapus data lowongan ini dari Database Supabase?',
+              style: TextStyle(color: AppColors.textMain, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('• Judul: ${targetJob.title}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF991B1B))),
+                  Text('• Sumber: ${targetJob.dataSourceLabel}', style: const TextStyle(fontSize: 11, color: Color(0xFF991B1B))),
+                  Text('• ID: ${targetJob.id}', style: const TextStyle(fontSize: 11, color: Color(0xFF991B1B))),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '⚠️ Operasi ini bersifat permanen dan tidak dapat dibatalkan.',
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
+              final success = await context.read<JobProvider>().deleteJob(targetJob.id);
+
+              if (success) {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.delete_forever, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text('Lowongan "${targetJob.title}" berhasil dihapus dari Database!'),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: AppColors.danger,
+                  ),
+                );
+                navigator.pop(); // Kembali ke katalog
+              }
+            },
+            icon: const Icon(Icons.delete_forever, size: 16),
+            label: const Text('Ya, Hapus Sekarang'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final jobProvider = context.watch<JobProvider>();
@@ -56,6 +139,11 @@ class JobDetailScreen extends StatelessWidget {
                 ),
               );
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+            tooltip: 'Hapus Lowongan (Delete Database)',
+            onPressed: () => _confirmDelete(context, currentJob),
           ),
           IconButton(
             icon: Icon(
@@ -117,7 +205,7 @@ class JobDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _buildJobDescription(item.description),
           const SizedBox(height: 24),
-          _buildActionButtons(context, item.id, isAlreadyActive),
+          _buildActionButtons(context, item, isAlreadyActive),
         ],
       ),
     );
@@ -155,7 +243,7 @@ class JobDetailScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 EscrowStatusCard(amount: item.formattedWage, status: item.paymentStatus, isDetailed: true),
                 const SizedBox(height: 20),
-                _buildActionButtons(context, item.id, isAlreadyActive),
+                _buildActionButtons(context, item, isAlreadyActive),
               ],
             ),
           ),
@@ -237,37 +325,50 @@ class JobDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, String jobId, bool isAlreadyActive) {
-    return Row(
+  Widget _buildActionButtons(BuildContext context, JobModel item, bool isAlreadyActive) {
+    return Column(
       children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
-            child: const Text('Kembali'),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: ElevatedButton(
-            onPressed: isAlreadyActive
-                ? null
-                : () {
-                    context.read<JobProvider>().acceptJob(jobId);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Pekerjaan Diterima! Upah otomatis terkunci aman di Escrow.'),
-                        backgroundColor: AppColors.secondary,
-                      ),
-                    );
-                    Navigator.pop(context);
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isAlreadyActive ? Colors.grey : AppColors.secondary,
-              minimumSize: const Size(double.infinity, 48),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
+                child: const Text('Kembali'),
+              ),
             ),
-            child: Text(isAlreadyActive ? '✓ Sedang Dikerjakan' : '✓ Terima Pekerjaan Ini'),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton(
+                onPressed: isAlreadyActive
+                    ? null
+                    : () {
+                        context.read<JobProvider>().acceptJob(item.id);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Pekerjaan Diterima! Upah otomatis terkunci aman di Escrow.'),
+                            backgroundColor: AppColors.secondary,
+                          ),
+                        );
+                        Navigator.pop(context);
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isAlreadyActive ? Colors.grey : AppColors.secondary,
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+                child: Text(isAlreadyActive ? '✓ Sedang Dikerjakan' : '✓ Terima Pekerjaan Ini'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: TextButton.icon(
+            onPressed: () => _confirmDelete(context, item),
+            icon: const Icon(Icons.delete_outline, color: AppColors.danger, size: 18),
+            label: const Text('Hapus Lowongan dari Database', style: TextStyle(color: AppColors.danger)),
           ),
         ),
       ],
