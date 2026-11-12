@@ -4,6 +4,7 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../models/job_model.dart';
 import '../providers/job_provider.dart';
+import '../providers/user_provider.dart';
 
 class CreateJobScreen extends StatefulWidget {
   const CreateJobScreen({super.key});
@@ -193,12 +194,56 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
 
   Widget _buildFormContent(BuildContext context) {
     final isCreating = context.watch<JobProvider>().isCreatingJob;
+    final userRole = context.watch<UserProvider>().worker.role;
+    final isWorker = userRole == 'Worker';
 
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Banner Role Contextual
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            margin: const EdgeInsets.only(bottom: 14),
+            decoration: BoxDecoration(
+              color: isWorker ? AppColors.warningLight : AppColors.secondaryLight,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isWorker
+                    ? AppColors.warning.withValues(alpha: 0.3)
+                    : AppColors.secondary.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isWorker ? Icons.info_outline : Icons.business_center_outlined,
+                  color: isWorker ? AppColors.warning : AppColors.secondary,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isWorker
+                        ? 'Mode Worker aktif. Untuk memposting pekerjaan, Anda dapat beralih ke peran Employer.'
+                        : 'Mode Employer aktif. Lowongan akan langsung diposting ke Cloud Database Supabase.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isWorker ? AppColors.warning : AppColors.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (isWorker)
+                  TextButton(
+                    onPressed: () => context.read<UserProvider>().switchRole('Employer'),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(60, 30)),
+                    child: const Text('Beralih', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

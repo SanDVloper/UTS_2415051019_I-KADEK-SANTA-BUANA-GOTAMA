@@ -42,53 +42,60 @@ class JobCard extends StatelessWidget {
               children: [
                 // Top Bar: Category + Data Source + Match Badge + Bookmark Button
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        job.category,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: job.isFromDatabase ? const Color(0xFFE0F2FE) : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    Expanded(
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Icon(
-                            job.isFromDatabase ? Icons.cloud_done : Icons.api,
-                            size: 11,
-                            color: job.isFromDatabase ? const Color(0xFF0284C7) : AppColors.textMuted,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            job.dataSourceLabel,
-                            style: TextStyle(
-                              color: job.isFromDatabase ? const Color(0xFF0284C7) : AppColors.textMuted,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              job.category,
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: job.isFromDatabase ? const Color(0xFFE0F2FE) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  job.isFromDatabase ? Icons.cloud_done : Icons.api,
+                                  size: 11,
+                                  color: job.isFromDatabase ? const Color(0xFF0284C7) : AppColors.textMuted,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  job.dataSourceLabel,
+                                  style: TextStyle(
+                                    color: job.isFromDatabase ? const Color(0xFF0284C7) : AppColors.textMuted,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SmartMatchBadge(score: 92),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    const SmartMatchBadge(score: 92),
-                    const Spacer(),
+                    const SizedBox(width: 6),
                     Semantics(
                       button: true,
                       label: isBookmarked ? 'Hapus ${job.title} dari favorit' : 'Simpan ${job.title} ke favorit',

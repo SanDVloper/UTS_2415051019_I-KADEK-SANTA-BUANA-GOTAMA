@@ -39,7 +39,17 @@ class UserProvider extends ChangeNotifier {
   }
 
   void switchRole(String role) {
-    _worker = _worker.copyWith(role: role);
+    if (role == 'Employer') {
+      _worker = _worker.copyWith(
+        role: 'Employer',
+        name: 'Made Suardana (Employer)',
+      );
+    } else {
+      _worker = _worker.copyWith(
+        role: 'Worker',
+        name: 'Made Suardana',
+      );
+    }
     notifyListeners();
   }
 

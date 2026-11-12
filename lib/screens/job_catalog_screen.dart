@@ -4,6 +4,7 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../models/job_model.dart';
 import '../providers/job_provider.dart';
+import '../providers/user_provider.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/error_state_widget.dart';
 import '../widgets/job_card.dart';
@@ -194,6 +195,8 @@ class JobCatalogScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final jobProvider = context.watch<JobProvider>();
+    final userRole = context.watch<UserProvider>().worker.role;
+    final isWorker = userRole == 'Worker';
     final jobs = jobProvider.filteredJobs;
 
     return LayoutBuilder(
@@ -215,15 +218,17 @@ class JobCatalogScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Katalog Rekomendasi Pekerjaan',
+                            isWorker ? 'Katalog Lowongan Pekerjaan' : 'Manajemen Lowongan Pekerjaan',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
                           const SizedBox(height: 2),
-                          const Text(
-                            'Terintegrasi Supabase PostgreSQL Cloud & REST API Server',
-                            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                          Text(
+                            isWorker
+                                ? 'Pilih lowongan mikro inklusif dengan upah terproteksi Escrow 100%'
+                                : 'Kelola lowongan aktif Anda di Cloud Database Supabase PostgreSQL',
+                            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                           ),
                         ],
                       ),
@@ -304,13 +309,14 @@ class JobCatalogScreen extends StatelessWidget {
                           tooltip: 'Muat Ulang Data',
                           onPressed: () => jobProvider.fetchJobs(),
                         ),
-                        Chip(
-                          backgroundColor: AppColors.primaryLight,
-                          label: Text(
-                            isCompact ? 'List (1 Col)' : 'Grid (2 Col)',
-                            style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600),
+                        if (!isCompact)
+                          Chip(
+                            backgroundColor: AppColors.primaryLight,
+                            label: const Text(
+                              'Grid (2 Col)',
+                              style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ],
@@ -389,7 +395,7 @@ class JobCatalogScreen extends StatelessWidget {
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () => jobProvider.fetchJobs(),
-                    child: _buildStateContent(context, jobProvider, jobs, isCompact),
+                    child: _buildStateContent(context, jobProvider, jobs, isCompact, isWorker),
                   ),
                 ),
               ],
@@ -400,7 +406,7 @@ class JobCatalogScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStateContent(BuildContext context, JobProvider provider, List<JobModel> jobs, bool isCompact) {
+  Widget _buildStateContent(BuildContext context, JobProvider provider, List<JobModel> jobs, bool isCompact, bool isWorker) {
     if (provider.state == ViewState.loading) {
       return const LoadingStateWidget(
         message: 'Membaca records dari Database Supabase & REST API server...',
@@ -429,16 +435,53 @@ class JobCatalogScreen extends StatelessWidget {
       );
     }
 
-    return isCompact ? _buildListView(context, provider, jobs) : _buildGridView(context, provider, jobs);
+    return isCompact ? _buildListView(context, provider, jobs, isWorker) : _buildGridView(context, provider, jobs);
   }
 
-  Widget _buildListView(BuildContext context, JobProvider provider, List<JobModel> jobs) {
+  Widget _buildListView(BuildContext context, JobProvider provider, List<JobModel> jobs, bool isWorker) {
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
       itemCount: jobs.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final item = jobs[index];
+        final card = JobCard(
+          job: item,
+          isBookmarked: provider.isBookmarked(item.id),
+          onBookmarkToggle: () {
+            final wasSaved = provider.isBookmarked(item.id);
+            provider.toggleBookmark(item.id);
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  wasSaved ? 'Pekerjaan dihapus dari Favorit' : 'Pekerjaan disimpan ke Favorit!',
+                ),
+                action: SnackBarAction(
+                  label: 'URUNGKAN',
+                  textColor: Colors.amber,
+                  onPressed: () => provider.toggleBookmark(item.id),
+                ),
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          },
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => JobDetailScreen(job: item),
+              ),
+            );
+          },
+        );
+
+        if (isWorker) {
+          // Role Worker: Kartu bersih tanpa gesture penghapusan database
+          return card;
+        }
+
+        // Role Employer: Dilengkapi gesture Dismissible swipe-to-delete
         return Dismissible(
           key: Key('job-${item.id}-$index'),
           direction: DismissDirection.endToStart,
@@ -472,36 +515,7 @@ class JobCatalogScreen extends StatelessWidget {
               ],
             ),
           ),
-          child: JobCard(
-            job: item,
-            isBookmarked: provider.isBookmarked(item.id),
-            onBookmarkToggle: () {
-              final wasSaved = provider.isBookmarked(item.id);
-              provider.toggleBookmark(item.id);
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    wasSaved ? 'Pekerjaan dihapus dari Favorit' : 'Pekerjaan disimpan ke Favorit!',
-                  ),
-                  action: SnackBarAction(
-                    label: 'URUNGKAN',
-                    textColor: Colors.amber,
-                    onPressed: () => provider.toggleBookmark(item.id),
-                  ),
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            },
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => JobDetailScreen(job: item),
-                ),
-              );
-            },
-          ),
+          child: card,
         );
       },
     );

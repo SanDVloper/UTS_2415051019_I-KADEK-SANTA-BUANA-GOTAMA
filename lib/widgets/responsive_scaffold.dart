@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
+import '../providers/user_provider.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/job_catalog_screen.dart';
 import '../screens/create_job_screen.dart';
@@ -16,14 +18,6 @@ class ResponsiveScaffold extends StatefulWidget {
 
 class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
   int _selectedIndex = 0;
-
-  final List<String> _tabTitles = [
-    'Beranda KaryaSetara',
-    'Katalog Rekomendasi',
-    'Buat Pekerjaan Baru',
-    'Pekerjaan Aktif & Escrow',
-    'Profil & Aksesibilitas',
-  ];
 
   void _onDestinationSelected(int index) {
     setState(() {
@@ -91,6 +85,25 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = context.watch<UserProvider>();
+    final isWorker = userProvider.worker.role == 'Worker';
+
+    final tabTitles = isWorker
+        ? [
+            'Beranda Pekerja (Worker)',
+            'Katalog Lowongan Pekerjaan',
+            'Posting Lowongan (Mode Employer)',
+            'Lembar Kerja & Alur Upah Escrow',
+            'Profil Pekerja & Aksesibilitas',
+          ]
+        : [
+            'Dashboard Pemberi Kerja',
+            'Manajemen Lowongan Supabase',
+            'Posting Lowongan Baru (CRUD)',
+            'Panel Verifikasi Tugas & Escrow',
+            'Profil Lembaga & Pengaturan',
+          ];
+
     final screens = [
       DashboardScreen(onNavigateToTab: _onDestinationSelected),
       const JobCatalogScreen(),
@@ -107,7 +120,7 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
           // ================= MOBILE LAYOUT (< 600dp) =================
           return Scaffold(
             appBar: AppBar(
-              title: Text(_tabTitles[_selectedIndex]),
+              title: Text(tabTitles[_selectedIndex]),
               actions: [
                 IconButton(
                   tooltip: 'Status Escrow Aman',
@@ -123,33 +136,61 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
             bottomNavigationBar: NavigationBar(
               selectedIndex: _selectedIndex,
               onDestinationSelected: _onDestinationSelected,
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.search_outlined),
-                  selectedIcon: Icon(Icons.search),
-                  label: 'Katalog',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.add_circle_outline),
-                  selectedIcon: Icon(Icons.add_circle),
-                  label: 'Buat Job',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.assignment_outlined),
-                  selectedIcon: Icon(Icons.assignment),
-                  label: 'Aktif',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
-                  label: 'Profil',
-                ),
-              ],
+              destinations: isWorker
+                  ? const [
+                      NavigationDestination(
+                        icon: Icon(Icons.home_outlined),
+                        selectedIcon: Icon(Icons.home),
+                        label: 'Beranda',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.search_outlined),
+                        selectedIcon: Icon(Icons.search),
+                        label: 'Cari Job',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.add_circle_outline),
+                        selectedIcon: Icon(Icons.add_circle),
+                        label: 'Posting',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.assignment_outlined),
+                        selectedIcon: Icon(Icons.assignment),
+                        label: 'Tugas',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.person_outline),
+                        selectedIcon: Icon(Icons.person),
+                        label: 'Profil',
+                      ),
+                    ]
+                  : const [
+                      NavigationDestination(
+                        icon: Icon(Icons.dashboard_outlined),
+                        selectedIcon: Icon(Icons.dashboard),
+                        label: 'Beranda',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.list_alt_outlined),
+                        selectedIcon: Icon(Icons.list_alt),
+                        label: 'Lowongan',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.add_circle_outline),
+                        selectedIcon: Icon(Icons.add_circle),
+                        label: 'Posting',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.fact_check_outlined),
+                        selectedIcon: Icon(Icons.fact_check),
+                        label: 'Verifikasi',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.business_outlined),
+                        selectedIcon: Icon(Icons.business),
+                        label: 'Profil Usaha',
+                      ),
+                    ],
             ),
           );
         } else {
@@ -205,51 +246,93 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const CircleAvatar(
+                            CircleAvatar(
                               radius: 16,
-                              backgroundColor: AppColors.primaryLight,
-                              child: Text('MS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              backgroundColor: isWorker ? AppColors.primaryLight : AppColors.secondaryLight,
+                              child: Text(
+                                isWorker ? 'MS' : 'EM',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isWorker ? AppColors.primary : AppColors.secondary,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 4),
-                            const Text('Online', style: TextStyle(fontSize: 10, color: AppColors.secondary)),
+                            Text(
+                              isWorker ? 'Pekerja' : 'Employer',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isWorker ? AppColors.primary : AppColors.secondary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  destinations: const [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.home_outlined),
-                      selectedIcon: Icon(Icons.home),
-                      label: Text('Beranda'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.search_outlined),
-                      selectedIcon: Icon(Icons.search),
-                      label: Text('Katalog'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.add_circle_outline),
-                      selectedIcon: Icon(Icons.add_circle),
-                      label: Text('Buat Job'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.assignment_outlined),
-                      selectedIcon: Icon(Icons.assignment),
-                      label: Text('Aktif'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.person_outline),
-                      selectedIcon: Icon(Icons.person),
-                      label: Text('Profil'),
-                    ),
-                  ],
+                  destinations: isWorker
+                      ? const [
+                          NavigationRailDestination(
+                            icon: Icon(Icons.home_outlined),
+                            selectedIcon: Icon(Icons.home),
+                            label: Text('Beranda'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.search_outlined),
+                            selectedIcon: Icon(Icons.search),
+                            label: Text('Cari Job'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.add_circle_outline),
+                            selectedIcon: Icon(Icons.add_circle),
+                            label: Text('Posting'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.assignment_outlined),
+                            selectedIcon: Icon(Icons.assignment),
+                            label: Text('Tugas'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.person_outline),
+                            selectedIcon: Icon(Icons.person),
+                            label: Text('Profil'),
+                          ),
+                        ]
+                      : const [
+                          NavigationRailDestination(
+                            icon: Icon(Icons.dashboard_outlined),
+                            selectedIcon: Icon(Icons.dashboard),
+                            label: Text('Beranda'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.list_alt_outlined),
+                            selectedIcon: Icon(Icons.list_alt),
+                            label: Text('Lowongan'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.add_circle_outline),
+                            selectedIcon: Icon(Icons.add_circle),
+                            label: Text('Posting'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.fact_check_outlined),
+                            selectedIcon: Icon(Icons.fact_check),
+                            label: Text('Verifikasi'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.business_outlined),
+                            selectedIcon: Icon(Icons.business),
+                            label: Text('Profil'),
+                          ),
+                        ],
                 ),
                 const VerticalDivider(thickness: 1, width: 1, color: AppColors.border),
                 Expanded(
                   child: Scaffold(
                     appBar: AppBar(
-                      title: Text(_tabTitles[_selectedIndex]),
+                      title: Text(tabTitles[_selectedIndex]),
                       elevation: 0,
                       actions: [
                         InkWell(

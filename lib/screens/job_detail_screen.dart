@@ -4,6 +4,7 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../models/job_model.dart';
 import '../providers/job_provider.dart';
+import '../providers/user_provider.dart';
 import '../widgets/escrow_status_card.dart';
 import '../widgets/smart_match_badge.dart';
 import 'edit_job_screen.dart';
@@ -121,56 +122,61 @@ class JobDetailScreen extends StatelessWidget {
           ),
     );
 
+    final userProvider = context.watch<UserProvider>();
+    final isWorker = userProvider.worker.role == 'Worker';
     final isBookmarked = jobProvider.isBookmarked(currentId);
     final isAlreadyActive = jobProvider.activeJob?.id == currentId;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail Pekerjaan'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Edit Lowongan (Update Database)',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EditJobScreen(job: currentJob),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-            tooltip: 'Hapus Lowongan (Delete Database)',
-            onPressed: () => _confirmDelete(context, currentJob),
-          ),
-          IconButton(
-            icon: Icon(
-              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-              color: isBookmarked ? AppColors.primary : null,
-            ),
-            tooltip: isBookmarked ? 'Hapus dari Favorit' : 'Simpan ke Favorit',
-            onPressed: () {
-              final wasSaved = jobProvider.isBookmarked(currentId);
-              jobProvider.toggleBookmark(currentId);
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    wasSaved ? 'Pekerjaan dihapus dari Favorit' : 'Pekerjaan disimpan ke Favorit!',
+        actions: isWorker
+            ? [
+                IconButton(
+                  icon: Icon(
+                    isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                    color: isBookmarked ? AppColors.primary : null,
                   ),
-                  action: SnackBarAction(
-                    label: 'URUNGKAN',
-                    textColor: Colors.amber,
-                    onPressed: () => jobProvider.toggleBookmark(currentId),
-                  ),
-                  duration: const Duration(seconds: 3),
+                  tooltip: isBookmarked ? 'Hapus dari Favorit' : 'Simpan ke Favorit',
+                  onPressed: () {
+                    final wasSaved = jobProvider.isBookmarked(currentId);
+                    jobProvider.toggleBookmark(currentId);
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          wasSaved ? 'Pekerjaan dihapus dari Favorit' : 'Pekerjaan disimpan ke Favorit!',
+                        ),
+                        action: SnackBarAction(
+                          label: 'URUNGKAN',
+                          textColor: Colors.amber,
+                          onPressed: () => jobProvider.toggleBookmark(currentId),
+                        ),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        ],
+              ]
+            : [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Edit Lowongan (Update Database)',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditJobScreen(job: currentJob),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+                  tooltip: 'Hapus Lowongan (Delete Database)',
+                  onPressed: () => _confirmDelete(context, currentJob),
+                ),
+              ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -181,12 +187,14 @@ class JobDetailScreen extends StatelessWidget {
               context,
               currentJob,
               isAlreadyActive,
+              isWorker,
             );
           } else {
             return _buildExpandedDetail(
               context,
               currentJob,
               isAlreadyActive,
+              isWorker,
             );
           }
         },
@@ -198,6 +206,7 @@ class JobDetailScreen extends StatelessWidget {
     BuildContext context,
     JobModel item,
     bool isAlreadyActive,
+    bool isWorker,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -212,7 +221,7 @@ class JobDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _buildJobDescription(item.description),
           const SizedBox(height: 24),
-          _buildActionButtons(context, item, isAlreadyActive),
+          _buildActionButtons(context, item, isAlreadyActive, isWorker),
         ],
       ),
     );
@@ -222,6 +231,7 @@ class JobDetailScreen extends StatelessWidget {
     BuildContext context,
     JobModel item,
     bool isAlreadyActive,
+    bool isWorker,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -250,7 +260,7 @@ class JobDetailScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 EscrowStatusCard(amount: item.formattedWage, status: item.paymentStatus, isDetailed: true),
                 const SizedBox(height: 20),
-                _buildActionButtons(context, item, isAlreadyActive),
+                _buildActionButtons(context, item, isAlreadyActive, isWorker),
               ],
             ),
           ),
@@ -263,7 +273,10 @@ class JobDetailScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -276,7 +289,6 @@ class JobDetailScreen extends StatelessWidget {
                 style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
@@ -332,53 +344,89 @@ class JobDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, JobModel item, bool isAlreadyActive) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(context),
-                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
-                child: const Text('Kembali'),
-              ),
+  Widget _buildActionButtons(BuildContext context, JobModel item, bool isAlreadyActive, bool isWorker) {
+    if (isWorker) {
+      // Role Worker: Hanya opsi Kembali & Terima Tugas
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => Navigator.pop(context),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
+              child: const Text('Kembali'),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                onPressed: isAlreadyActive
-                    ? null
-                    : () {
-                        context.read<JobProvider>().acceptJob(item.id);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pekerjaan Diterima! Upah otomatis terkunci aman di Escrow.'),
-                            backgroundColor: AppColors.secondary,
-                          ),
-                        );
-                        Navigator.pop(context);
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isAlreadyActive ? Colors.grey : AppColors.secondary,
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                child: Text(isAlreadyActive ? '✓ Sedang Dikerjakan' : '✓ Terima Pekerjaan Ini'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: TextButton.icon(
-            onPressed: () => _confirmDelete(context, item),
-            icon: const Icon(Icons.delete_outline, color: AppColors.danger, size: 18),
-            label: const Text('Hapus Lowongan dari Database', style: TextStyle(color: AppColors.danger)),
           ),
-        ),
-      ],
-    );
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: ElevatedButton(
+              onPressed: isAlreadyActive
+                  ? null
+                  : () {
+                      context.read<JobProvider>().acceptJob(item.id);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Pekerjaan Diterima! Upah otomatis terkunci aman di Escrow.'),
+                          backgroundColor: AppColors.secondary,
+                        ),
+                      );
+                      Navigator.pop(context);
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isAlreadyActive ? Colors.grey : AppColors.secondary,
+                minimumSize: const Size(double.infinity, 48),
+              ),
+              child: Text(isAlreadyActive ? '✓ Sedang Dikerjakan' : '✓ Terima Pekerjaan Ini'),
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Role Employer: Opsi Kelola / Edit & Hapus Lowongan dari Supabase
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
+                  child: const Text('Kembali'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditJobScreen(job: item),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Edit Lowongan Ini'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: () => _confirmDelete(context, item),
+              icon: const Icon(Icons.delete_outline, color: AppColors.danger, size: 18),
+              label: const Text('Hapus Lowongan dari Database Supabase', style: TextStyle(color: AppColors.danger)),
+            ),
+          ),
+        ],
+      );
+    }
   }
 }

@@ -31,6 +31,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
     final jobProvider = context.watch<JobProvider>();
     final userProvider = context.watch<UserProvider>();
     final activeJob = jobProvider.activeJob;
+    final isWorker = userProvider.worker.role == 'Worker';
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -40,24 +41,62 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
           body: SingleChildScrollView(
             padding: EdgeInsets.all(isCompact ? 16.0 : 24.0),
             child: activeJob == null
-                ? _buildEmptyState(context)
+                ? _buildEmptyState(context, isWorker)
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Role Indicator Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: isWorker ? AppColors.primaryLight : AppColors.secondaryLight,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isWorker ? Icons.person_pin : Icons.business_center,
+                              size: 14,
+                              color: isWorker ? AppColors.primary : AppColors.secondary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isWorker
+                                  ? 'Mode Tampilan: Lembar Kerja Pekerja (Worker)'
+                                  : 'Mode Tampilan: Panel Verifikasi Pemberi Kerja (Employer)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isWorker ? AppColors.primary : AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                       // Header
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Pekerjaan Berjalan & Alur Upah',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 2),
-                              const Text('Pelacakan status pengerjaan dan pencairan dana Escrow', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                            ],
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isWorker ? 'Pekerjaan Berjalan & Alur Upah' : 'Panel Manajemen Tugas & Escrow',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isWorker
+                                      ? 'Pelacakan status pengerjaan dan pencairan dana Escrow ke saldo Anda'
+                                      : 'Meninjau hasil submission worker dan menyetujui pelepasan dana Escrow',
+                                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                                ),
+                              ],
+                            ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -90,7 +129,9 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                               Text(activeJob.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 4),
                               Text(
-                                'Pemberi Kerja: ${activeJob.employerName} • ${activeJob.location}',
+                                isWorker
+                                    ? 'Pemberi Kerja: ${activeJob.employerName} • ${activeJob.location}'
+                                    : 'Pelaksana Tugas: Made Suardana • ${activeJob.location}',
                                 style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                               ),
                               const Divider(height: 24),
@@ -105,33 +146,50 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Stepper Alur Transaksi
+                      // Stepper Alur Transaksi (Role-Specific Labels)
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Tahapan Alur Pengerjaan (Golden Flow)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                              Text(
+                                isWorker ? 'Tahapan Pengerjaan Worker (Golden Flow)' : 'Tahapan Alur Pengawasan Escrow (Employer Flow)',
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
                               const SizedBox(height: 14),
-                              _buildStepItem('1', 'Pekerjaan Dibuat & Upah Terkunci', 'Dana ${activeJob.formattedWage} telah diamankan sistem', true),
-                              _buildStepItem('2', 'Worker Menerima Pekerjaan', 'Tugas masuk ke lembar kerja aktif', true),
+                              _buildStepItem(
+                                '1',
+                                isWorker ? 'Pekerjaan Dibuat & Upah Terkunci' : 'Anda Mendepositkan Upah ke Escrow',
+                                'Dana ${activeJob.formattedWage} diamankan di sistem',
+                                true,
+                              ),
+                              _buildStepItem(
+                                '2',
+                                isWorker ? 'Worker Menerima Pekerjaan' : 'Worker Ditugaskan untuk Pekerjaan Ini',
+                                'Tugas masuk ke lembar kerja aktif',
+                                true,
+                              ),
                               _buildStepItem(
                                 '3',
-                                'Pengerjaan & Pengumpulan Hasil',
-                                activeJob.submissionUrl != null ? 'Tautan: ${activeJob.submissionUrl}' : 'Unggah berkas hasil tugas pada formulir di bawah',
+                                isWorker ? 'Pengumpulan Berkas Hasil Tugas' : 'Worker Mengunggah Berkas Hasil Tugas',
+                                activeJob.submissionUrl != null ? 'Tautan: ${activeJob.submissionUrl}' : 'Menunggu pengumpulan link pengerjaan',
                                 activeJob.status == 'Waiting Confirmation' || activeJob.status == 'Completed',
                               ),
                               _buildStepItem(
                                 '4',
-                                'Konfirmasi Pemberi Kerja',
-                                activeJob.status == 'Completed' ? 'Employer telah menyetujui hasil pengerjaan' : 'Employer memeriksa kesesuaian hasil pengerjaan',
+                                isWorker ? 'Pemeriksaan oleh Employer' : 'Anda Memeriksa Kesesuaian Hasil Tugas',
+                                activeJob.status == 'Completed'
+                                    ? 'Employer telah memverifikasi dan menyetujui hasil'
+                                    : 'Meninjau berkas tugas yang diserahkan worker',
                                 activeJob.status == 'Completed',
                               ),
                               _buildStepItem(
                                 '5',
-                                'Pencairan Dana ke Saldo',
-                                activeJob.status == 'Completed' ? 'Upah telah ditambahkan ke saldo Made Suardana' : 'Upah otomatis diteruskan setelah disetujui',
+                                isWorker ? 'Pencairan Dana ke Saldo Anda' : 'Otomasi Pencairan Dana ke Saldo Worker',
+                                activeJob.status == 'Completed'
+                                    ? 'Dana ${activeJob.formattedWage} berhasil masuk ke rekening/saldo pekerja'
+                                    : 'Upah diteruskan setelah hasil pengerjaan disetujui',
                                 activeJob.status == 'Completed',
                               ),
                             ],
@@ -140,11 +198,11 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Submission / Action Card
+                      // Submission / Action Card (Role-Specific)
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: _buildActionArea(context, activeJob, jobProvider, userProvider),
+                          child: _buildActionArea(context, activeJob, jobProvider, userProvider, isWorker),
                         ),
                       ),
                     ],
@@ -155,7 +213,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, bool isWorker) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
@@ -164,25 +222,27 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
           children: [
             const Icon(Icons.assignment_outlined, size: 64, color: AppColors.textMuted),
             const SizedBox(height: 16),
-            const Text(
-              'Belum Ada Pekerjaan Berjalan',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              isWorker ? 'Belum Ada Pekerjaan Berjalan' : 'Belum Ada Penugasan Aktif',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Anda belum menerima tugas apapun. Buka katalog untuk memilih lowongan yang sesuai kemampuan Anda.',
+            Text(
+              isWorker
+                  ? 'Anda belum menerima tugas apapun. Buka katalog untuk memilih lowongan yang sesuai kemampuan Anda.'
+                  : 'Belum ada worker yang sedang mengerjakan lowongan Anda. Buat lowongan baru untuk mencari kandidat.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
                 if (widget.onNavigateToTab != null) {
-                  widget.onNavigateToTab!(1); // Go to Catalog tab
+                  widget.onNavigateToTab!(isWorker ? 1 : 2); // Catalog for worker, Create for employer
                 }
               },
-              icon: const Icon(Icons.search),
-              label: const Text('Buka Katalog Pekerjaan'),
+              icon: Icon(isWorker ? Icons.search : Icons.add_circle_outline),
+              label: Text(isWorker ? 'Buka Katalog Pekerjaan' : 'Posting Lowongan Baru'),
             ),
           ],
         ),
@@ -195,104 +255,195 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
     dynamic activeJob,
     JobProvider jobProvider,
     UserProvider userProvider,
+    bool isWorker,
   ) {
-    if (activeJob.status == 'Active') {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Pengumpulan Hasil Tugas', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _submissionController,
-            decoration: const InputDecoration(
-              labelText: 'Tautan Berkas Hasil Transkripsi (Google Docs/Drive)',
-              border: OutlineInputBorder(),
+    if (isWorker) {
+      // ================= WORKER ACTIONS =================
+      if (activeJob.status == 'Active') {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Pengumpulan Hasil Tugas (Worker Submission)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _submissionController,
+              decoration: const InputDecoration(
+                labelText: 'Tautan Berkas Hasil Transkripsi (Google Docs/Drive)',
+                border: OutlineInputBorder(),
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          ElevatedButton.icon(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Konfirmasi Selesai'),
-                  content: const Text('Apakah Anda yakin ingin menandai pekerjaan ini selesai dan mengirimkan hasil tugas ke Employer?'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        jobProvider.submitJob(activeJob.id, _submissionController.text.trim());
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pekerjaan berhasil diserahkan! Menunggu konfirmasi Employer.'),
-                            backgroundColor: AppColors.secondary,
-                          ),
-                        );
-                      },
-                      child: const Text('Ya, Kirim Hasil'),
-                    ),
-                  ],
-                ),
-              );
-            },
-            icon: const Icon(Icons.check_circle_outline),
-            label: const Text('Tandai Selesai & Kirim Hasil ke Employer'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-          ),
-        ],
-      );
-    } else if (activeJob.status == 'Waiting Confirmation') {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.hourglass_top, color: AppColors.warning, size: 20),
-              SizedBox(width: 8),
-              Text('Menunggu Konfirmasi Employer', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tautan hasil tugas Anda: ${activeJob.submissionUrl}\nEmployer sedang meninjau kualitas pekerjaan.',
-            style: const TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4),
-          ),
-          const SizedBox(height: 14),
-          OutlinedButton.icon(
-            onPressed: () {
-              jobProvider.confirmJobCompletion(activeJob.id);
-              userProvider.completeJob(activeJob.wage);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Simulasi Berhasil: Employer menyetujui tugas! Saldo bertambah ${activeJob.formattedWage}.'),
-                  backgroundColor: AppColors.secondary,
-                ),
-              );
-            },
-            icon: const Icon(Icons.verified_outlined, color: AppColors.secondary),
-            label: const Text('(Simulasi) Setujui & Cairkan Saldo'),
-          ),
-        ],
-      );
+            const SizedBox(height: 14),
+            ElevatedButton.icon(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Konfirmasi Pengumpulan'),
+                    content: const Text('Apakah Anda yakin ingin mengirimkan hasil tugas ini ke Employer untuk diverifikasi?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          jobProvider.submitJob(activeJob.id, _submissionController.text.trim());
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Pekerjaan berhasil diserahkan! Menunggu konfirmasi Employer.'),
+                              backgroundColor: AppColors.secondary,
+                            ),
+                          );
+                        },
+                        child: const Text('Ya, Kirim Hasil'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              icon: const Icon(Icons.send_rounded),
+              label: const Text('Kirim Hasil Tugas ke Employer'),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+            ),
+          ],
+        );
+      } else if (activeJob.status == 'Waiting Confirmation') {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.hourglass_top, color: AppColors.warning, size: 20),
+                SizedBox(width: 8),
+                Text('Menunggu Konfirmasi Employer', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tautan tugas yang Anda serahkan:\n${activeJob.submissionUrl}\n\nPemberi kerja sedang meninjau kualitas pekerjaan Anda sebelum mencairkan dana escrow.',
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text(
+                '💡 Tip Dosen: Beralihlah ke peran "Employer" di tab Profil untuk mencoba menyetujui tugas ini dari sisi pemberi kerja.',
+                style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        );
+      } else {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.check_circle, color: AppColors.secondary, size: 22),
+                SizedBox(width: 8),
+                Text('Tugas Selesai & Upah Diterima', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.secondary)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Pekerjaan ini telah berhasil diselesaikan dan upah ${activeJob.formattedWage} telah masuk ke saldo Made Suardana.',
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+          ],
+        );
+      }
     } else {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.check_circle, color: AppColors.secondary, size: 22),
-              SizedBox(width: 8),
-              Text('Tugas Selesai & Upah Diterima', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.secondary)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Pekerjaan ini telah berhasil diselesaikan dan upah ${activeJob.formattedWage} telah masuk ke saldo Made Suardana.',
-            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-        ],
-      );
+      // ================= EMPLOYER ACTIONS =================
+      if (activeJob.status == 'Active') {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.pending_actions, color: AppColors.warning, size: 20),
+                SizedBox(width: 8),
+                Text('Status: Sedang Dikerjakan oleh Worker', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Worker Made Suardana sedang menyelesaikan instruksi tugas ini. Dana sebesar ${activeJob.formattedWage} Anda aman terlindungi di Escrow hingga berkas tugas dikumpulkan.',
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4),
+            ),
+          ],
+        );
+      } else if (activeJob.status == 'Waiting Confirmation') {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.assignment_turned_in, color: AppColors.secondary, size: 22),
+                SizedBox(width: 8),
+                Text('Tugas Siap Diverifikasi (Employer Review)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Worker telah mengumpulkan hasil pengerjaan pada tautan berikut:\n${activeJob.submissionUrl}',
+              style: const TextStyle(fontSize: 12, color: AppColors.textMain, fontWeight: FontWeight.w500, height: 1.4),
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton.icon(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Setujui & Cairkan Escrow'),
+                    content: Text('Apakah Anda puas dengan hasil tugas ini dan menyetujui pelepasan dana ${activeJob.formattedWage} ke saldo worker?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          jobProvider.confirmJobCompletion(activeJob.id);
+                          userProvider.completeJob(activeJob.wage);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Pekerjaan disetujui! Dana ${activeJob.formattedWage} sukses ditransfer ke worker.'),
+                              backgroundColor: AppColors.secondary,
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                        child: const Text('Ya, Setujui & Cairkan'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              icon: const Icon(Icons.verified, size: 18),
+              label: const Text('Setujui Hasil & Cairkan Dana Escrow'),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+            ),
+          ],
+        );
+      } else {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.check_circle, color: AppColors.secondary, size: 22),
+                SizedBox(width: 8),
+                Text('Tugas Terverifikasi Selesai', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.secondary)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Anda telah memverifikasi tugas ini dan dana upah ${activeJob.formattedWage} telah resmi dicairkan ke saldo worker.',
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+          ],
+        );
+      }
     }
   }
 

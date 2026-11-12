@@ -32,12 +32,16 @@ class ProfileScreen extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 28,
-                          backgroundColor: AppColors.primaryLight,
+                          backgroundColor: worker.role == 'Worker' ? AppColors.primaryLight : AppColors.secondaryLight,
                           child: Text(
                             worker.name.isNotEmpty
                                 ? worker.name.split(' ').map((e) => e[0]).take(2).join()
                                 : 'MS',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: worker.role == 'Worker' ? AppColors.primary : AppColors.secondary,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -58,7 +62,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Skill Management
+                // Role Switcher Card (Khusus Pengujian Evaluasi Dosen UTS)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -66,29 +70,71 @@ class ProfileScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Daftar Kemampuan Saya', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                            TextButton.icon(
-                              onPressed: () => _showAddSkillDialog(context),
-                              icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Tambah Skill', style: TextStyle(fontSize: 12)),
+                            const Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 20),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'Mode Peran (Role Switcher)',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Evaluasi UTS',
+                                style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: worker.skills.map((s) {
-                            return Chip(
-                              label: Text(s, style: const TextStyle(fontSize: 12)),
-                              deleteIcon: const Icon(Icons.close, size: 14),
-                              onDeleted: () {
-                                userProvider.removeSkill(s);
-                              },
-                            );
-                          }).toList(),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Ubah peran secara instan untuk menguji alur aplikasi dari sudut pandang Pekerja maupun Pemberi Kerja:',
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment(
+                                value: 'Worker',
+                                icon: Icon(Icons.person_pin_outlined, size: 16),
+                                label: Text('Pekerja', style: TextStyle(fontSize: 11)),
+                              ),
+                              ButtonSegment(
+                                value: 'Employer',
+                                icon: Icon(Icons.business_center_outlined, size: 16),
+                                label: Text('Employer', style: TextStyle(fontSize: 11)),
+                              ),
+                            ],
+                            selected: {worker.role},
+                            onSelectionChanged: (Set<String> newSelection) {
+                              final newRole = newSelection.first;
+                              userProvider.switchRole(newRole);
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                                      const SizedBox(width: 8),
+                                      Text('Mode peran beralih ke: $newRole'),
+                                    ],
+                                  ),
+                                  backgroundColor: newRole == 'Worker' ? AppColors.primary : AppColors.secondary,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
@@ -96,39 +142,133 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Radius Lokasi Slider
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Radius Lokasi Penugasan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                            Text('${worker.radiusKm.toInt()} km', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-                          ],
-                        ),
-                        Slider(
-                          value: worker.radiusKm,
-                          min: 1,
-                          max: 25,
-                          divisions: 24,
-                          label: '${worker.radiusKm.toInt()} km',
-                          onChanged: (val) {
-                            userProvider.setRadius(val);
-                          },
-                        ),
-                        const Text(
-                          'Sistem Smart Matching hanya akan mencocokkan pekerjaan di dalam radius ini.',
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 11),
-                        ),
-                      ],
+                // Conditional Content based on Role
+                if (worker.role == 'Worker') ...[
+                  // Skill Management (Worker only)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Daftar Kemampuan Saya', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              TextButton.icon(
+                                onPressed: () => _showAddSkillDialog(context),
+                                icon: const Icon(Icons.add, size: 16),
+                                label: const Text('Tambah Skill', style: TextStyle(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: worker.skills.map((s) {
+                              return Chip(
+                                label: Text(s, style: const TextStyle(fontSize: 12)),
+                                deleteIcon: const Icon(Icons.close, size: 14),
+                                onDeleted: () {
+                                  userProvider.removeSkill(s);
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
+
+                  // Radius Lokasi Slider (Worker only)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Radius Lokasi Penugasan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text('${worker.radiusKm.toInt()} km', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                            ],
+                          ),
+                          Slider(
+                            value: worker.radiusKm,
+                            min: 1,
+                            max: 25,
+                            divisions: 24,
+                            label: '${worker.radiusKm.toInt()} km',
+                            onChanged: (val) {
+                              userProvider.setRadius(val);
+                            },
+                          ),
+                          const Text(
+                            'Sistem Smart Matching hanya akan mencocokkan pekerjaan di dalam radius ini.',
+                            style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ] else ...[
+                  // Employer Profile Card (Employer only)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.business_rounded, color: AppColors.secondary, size: 20),
+                              SizedBox(width: 8),
+                              Text('Informasi Lembaga & Usaha', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildEmployerInfoRow('Nama Lembaga', 'PT Inovasi Inklusif'),
+                          _buildEmployerInfoRow('Bidang Industri', 'Layanan Kreatif & Agensi Digital Inklusif'),
+                          _buildEmployerInfoRow('Lokasi Kantor', 'Denpasar Barat, Bali'),
+                          _buildEmployerInfoRow('Status Verifikasi', 'Terverifikasi Escrow Guard ✓'),
+                          _buildEmployerInfoRow('Total Escrow Dikelola', 'Rp 1.500.000 (100% Aman)'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Employer Escrow & Policy Card (Employer only)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.verified_user_outlined, color: AppColors.primary, size: 20),
+                              SizedBox(width: 8),
+                              Text('Kebijakan Perekrutan & Escrow', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            '• Seluruh lowongan yang Anda terbitkan otomatis mewajibkan deposit dana ke sistem Escrow sebelum pengerjaan dimulai.\n'
+                            '• Anda memiliki wewenang penuh memeriksa dan menyetujui hasil tugas sebelum dana dicairkan ke saldo worker.\n'
+                            '• Jangkauan penugasan terbuka untuk remote maupun on-site seluruh Bali.',
+                            style: TextStyle(fontSize: 12, height: 1.6, color: AppColors.textMain),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // Accessibility Settings (USP KaryaSetara)
                 Card(
@@ -238,6 +378,32 @@ class ProfileScreen extends StatelessWidget {
               }
             },
             child: const Text('Tambah'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmployerInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 4,
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMain),
+            ),
           ),
         ],
       ),
