@@ -16,10 +16,39 @@ Program Studi Pendidikan Teknik Informatika / Ilmu Komputer
 ---
 
 ## Deskripsi Aplikasi & Unique Selling Point (USP)
-**KaryaSetara** adalah aplikasi mobile berbasis Flutter yang dirancang dengan prinsip inklusivitas penuh (*accessibility-first*). Aplikasi ini mempertemukan pekerja mandiri—khususnya penyandang disabilitas—dengan pemberi kerja (*Employer*) melalui 3 pilar utama:
+**KaryaSetara** adalah aplikasi mobile berbasis Flutter yang dirancang dengan prinsip inklusivitas penuh (*accessibility-first*). Aplikasi ini mempertemukan pekerja mandiri—khususnya penyandang disabilitas—dengan pemberi kerja (*Employer*) melalui 4 pilar utama:
 1. **Smart Matching Algorithm:** Rekomendasi pekerjaan berbasis bobot multi-faktor (50% kecocokan skill, 30% kedekatan radius lokasi, dan 20% akomodasi aksesibilitas teks mandiri).
 2. **Escrow Payment Guard:** Sistem transparansi dan jaminan upah aman di mana dana employer dikunci di sistem sebelum tugas dimulai dan otomatis dicairkan setelah tugas selesai diverifikasi.
-3. **WCAG AAA Compliance:** Aksesibilitas tingkat tinggi dengan Mode Kontras Tinggi rasio 7:1, pembaca layar (*Semantics screen reader* untuk TalkBack), dan dynamic text scaler global tanpa layout overflow.
+3. **Dual Persona & Role Switcher:** Fitur perpindahan peran instan (*Worker* $\leftrightarrow$ *Employer*) pada layar profil untuk pengujian alur dua arah (pencari kerja vs pembuat lowongan & verifikator escrow).
+4. **WCAG AAA Compliance & Responsive Resilience:** Mode Kontras Tinggi rasio 7:1, pembaca layar (*Semantics screen reader* untuk TalkBack), dynamic text scaler 1.2x global, dan tata letak responsif berbasis `Wrap` bebas dari layout overflow.
+
+---
+
+## Panduan Evaluasi Dosen: Fitur Role Switcher (Pengujian Alur Dua Arah)
+Aplikasi dilengkapi fitur **Role Switcher** pada tab **Profil** guna mempermudah pengujian alur aplikasi secara *end-to-end* tanpa perlu *re-login*:
+
+```mermaid
+flowchart LR
+    A["Profil (Role Switcher)"] -->|Mode Worker| B["Pekerja Inklusif"]
+    A -->|Mode Employer| C["Pemberi Kerja"]
+    
+    B --> B1["Katalog: Terima Tugas"]
+    B1 --> B2["Tugas: Kumpul Link Tugas"]
+    
+    C --> C1["Buat Job: Create Supabase"]
+    C --> C2["Katalog: Edit & Swipe-Delete"]
+    C --> C3["Verifikasi: Setujui & Cairkan Escrow"]
+```
+
+- **Alur Pengujian Sisi Pekerja (Worker):**
+  1. Pada tab **Profil**, pilih segmen **Pekerja**.
+  2. Buka tab **Katalog** $\rightarrow$ Buka detail lowongan $\rightarrow$ Tekan **"✓ Terima Pekerjaan Ini"**.
+  3. Buka tab **Tugas** $\rightarrow$ Masukkan tautan berkas hasil tugas $\rightarrow$ Tekan **"Kirim Hasil Tugas ke Employer"** (Status menjadi *Waiting Confirmation*).
+- **Alur Pengujian Sisi Pemberi Kerja (Employer):**
+  1. Kembali ke tab **Profil**, ubah segmen peran menjadi **Employer**.
+  2. Buka tab **Posting** $\rightarrow$ Buat lowongan baru yang langsung ter-*insert* ke Cloud Database Supabase.
+  3. Buka tab **Katalog** $\rightarrow$ Lakukan gesture geser kartu ke kiri (*swipe-to-delete*) untuk menguji proteksi konfirmasi dialog hapus data.
+  4. Buka tab **Verifikasi** $\rightarrow$ Tinjau tautan hasil kerja $\rightarrow$ Tekan **"Setujui Hasil & Cairkan Dana Escrow"** untuk menyelesaikan transaksi dan mentransfer upah ke saldo pekerja.
 
 ---
 
