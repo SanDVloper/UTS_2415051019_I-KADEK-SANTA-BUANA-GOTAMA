@@ -46,6 +46,10 @@ class JobModel {
     return DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(createdAt);
   }
 
+  // Getter sumber data (Database Supabase vs REST API)
+  bool get isFromDatabase => id.startsWith('job-sp-') || id.startsWith('db-');
+  String get dataSourceLabel => isFromDatabase ? 'Supabase Cloud' : 'REST API';
+
   // JSON Deserialization (Dari REST API / Supabase Response)
   factory JobModel.fromJson(Map<String, dynamic> json) {
     return JobModel(

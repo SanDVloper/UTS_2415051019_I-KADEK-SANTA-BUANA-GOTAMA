@@ -55,6 +55,33 @@ class JobCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: job.isFromDatabase ? const Color(0xFFE0F2FE) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          job.isFromDatabase ? Icons.cloud_done : Icons.api,
+                          size: 11,
+                          color: job.isFromDatabase ? const Color(0xFF0284C7) : AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          job.dataSourceLabel,
+                          style: TextStyle(
+                            color: job.isFromDatabase ? const Color(0xFF0284C7) : AppColors.textMuted,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   const SmartMatchBadge(score: 92),
                   const Spacer(),

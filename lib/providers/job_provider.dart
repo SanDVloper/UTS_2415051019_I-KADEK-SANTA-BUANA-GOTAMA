@@ -23,6 +23,7 @@ class JobProvider extends ChangeNotifier {
   // Search & Filter State
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
+  String _selectedSourceFilter = 'Semua';
   String? _activeJobId = 'job-api-1';
 
   // Getters
@@ -31,10 +32,14 @@ class JobProvider extends ChangeNotifier {
   Set<String> get bookmarkedJobIds => _bookmarkedJobIds;
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
+  String get selectedSourceFilter => _selectedSourceFilter;
 
   List<JobModel> get allJobs => _jobs;
 
-  // Filtered Jobs Getter (Sesuai search query & kategori)
+  int get databaseJobCount => _jobs.where((j) => j.isFromDatabase).length;
+  int get apiJobCount => _jobs.where((j) => !j.isFromDatabase).length;
+
+  // Filtered Jobs Getter (Sesuai search query, kategori, dan sumber data)
   List<JobModel> get filteredJobs {
     return _jobs.where((job) {
       final matchesQuery = job.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -43,7 +48,11 @@ class JobProvider extends ChangeNotifier {
 
       final matchesCategory = _selectedCategory == 'Semua' || job.category == _selectedCategory;
 
-      return matchesQuery && matchesCategory;
+      final matchesSource = _selectedSourceFilter == 'Semua' ||
+          (_selectedSourceFilter == 'Supabase Cloud' && job.isFromDatabase) ||
+          (_selectedSourceFilter == 'REST API' && !job.isFromDatabase);
+
+      return matchesQuery && matchesCategory && matchesSource;
     }).toList();
   }
 
@@ -56,15 +65,31 @@ class JobProvider extends ChangeNotifier {
     }
   }
 
-  // Fetch Jobs dari REST API via JobRepository
+  // READ: Sinkronisasi data dari Database Supabase dan REST API
   Future<void> fetchJobs() async {
     _state = ViewState.loading;
     notifyListeners();
 
     try {
-      final fetchedJobs = await _repository.fetchJobs();
+      // 1. Read data dari Database Supabase
+      final dbJobs = await _repository.fetchJobsFromDatabase();
+
+      // 2. Read data dari REST API Server
+      final apiJobs = await _repository.fetchJobs();
+
+      // Gabungkan hasil read (Data Supabase diprioritaskan di atas)
+      final existingIds = <String>{};
+      final combined = <JobModel>[];
+
+      for (final j in dbJobs) {
+        if (existingIds.add(j.id)) combined.add(j);
+      }
+      for (final j in apiJobs) {
+        if (existingIds.add(j.id)) combined.add(j);
+      }
+
       _jobs.clear();
-      _jobs.addAll(fetchedJobs);
+      _jobs.addAll(combined);
 
       if (_jobs.isEmpty) {
         _state = ViewState.empty;
@@ -76,6 +101,28 @@ class JobProvider extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = e.toString();
+      _state = ViewState.error;
+    }
+    notifyListeners();
+  }
+
+  // READ Khusus: Membaca murni dari Database Supabase
+  Future<void> fetchDatabaseOnly() async {
+    _state = ViewState.loading;
+    notifyListeners();
+
+    try {
+      final dbJobs = await _repository.fetchJobsFromDatabase();
+      if (dbJobs.isEmpty) {
+        _state = ViewState.empty;
+      } else {
+        _jobs.clear();
+        _jobs.addAll(dbJobs);
+        _selectedSourceFilter = 'Supabase Cloud';
+        _state = ViewState.loaded;
+      }
+    } catch (e) {
+      _errorMessage = 'Gagal membaca records dari Supabase: $e';
       _state = ViewState.error;
     }
     notifyListeners();
@@ -93,7 +140,7 @@ class JobProvider extends ChangeNotifier {
 
   bool isBookmarked(String jobId) => _bookmarkedJobIds.contains(jobId);
 
-  // Set Filter Pencarian
+  // Set Filter Pencarian & Sumber Data
   void setSearchQuery(String query) {
     _searchQuery = query;
     notifyListeners();
@@ -101,6 +148,11 @@ class JobProvider extends ChangeNotifier {
 
   void setCategory(String category) {
     _selectedCategory = category;
+    notifyListeners();
+  }
+
+  void setSourceFilter(String source) {
+    _selectedSourceFilter = source;
     notifyListeners();
   }
 
