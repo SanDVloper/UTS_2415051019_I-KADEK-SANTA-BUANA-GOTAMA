@@ -5,9 +5,13 @@ import 'core/theme/app_theme.dart';
 import 'providers/accessibility_provider.dart';
 import 'providers/job_provider.dart';
 import 'providers/user_provider.dart';
+import 'services/supabase_service.dart';
 import 'widgets/responsive_scaffold.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService.initialize();
+
   runApp(
     MultiProvider(
       providers: [
