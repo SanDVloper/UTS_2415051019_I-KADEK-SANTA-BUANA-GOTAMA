@@ -6,6 +6,7 @@ import '../models/job_model.dart';
 import '../providers/job_provider.dart';
 import '../widgets/escrow_status_card.dart';
 import '../widgets/smart_match_badge.dart';
+import 'edit_job_screen.dart';
 
 class JobDetailScreen extends StatelessWidget {
   final JobModel? job;
@@ -16,26 +17,46 @@ class JobDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final jobProvider = context.watch<JobProvider>();
-    final currentId = job?.id ?? jobData?['id']?.toString() ?? 'job-001';
+    final currentId = job?.id ?? jobData?['id']?.toString() ?? 'job-api-1';
+
+    // Cari model terbaru dari state provider jika telah mengalami Update
+    final currentJob = jobProvider.allJobs.firstWhere(
+      (j) => j.id == currentId,
+      orElse: () =>
+          job ??
+          JobModel(
+            id: currentId,
+            title: jobData?['title'] ?? 'Transkripsi Audio Webinar Bahasa Indonesia',
+            description: 'Pekerjaan mikro terverifikasi dengan sistem pembayaran aman Escrow.',
+            category: 'Transkripsi & Pengetikan',
+            wage: 50000,
+            employerName: 'PT Inovasi Inklusif',
+            location: 'Denpasar Barat',
+            distanceKm: 1.2,
+            requiredSkills: const ['Mengetik Cepat', 'Komunikasi Teks'],
+            createdAt: DateTime.now(),
+          ),
+    );
+
     final isBookmarked = jobProvider.isBookmarked(currentId);
     final isAlreadyActive = jobProvider.activeJob?.id == currentId;
-
-    final title = job?.title ?? jobData?['title'] ?? 'Transkripsi Audio Webinar Bahasa Indonesia';
-    final employer = job?.employerName ?? jobData?['employer'] ?? 'PT Inovasi Inklusif';
-    final wageStr = job?.formattedWage ?? jobData?['wage'] ?? 'Rp 50.000';
-    final distanceStr = job != null ? '📍 ${job!.distanceKm} km' : jobData?['distance'] ?? '📍 1.2 km';
-    final category = job?.category ?? 'Transkripsi & Teks Mandiri';
-    final description = job?.description ??
-        'Pemberi kerja memerlukan bantuan untuk mentranskripsikan rekaman audio webinar 45 menit ke dalam dokumen Google Docs atau Microsoft Word. Rekaman suara jernih dan bebas kebisingan.\n\n'
-            'Ketentuan Pengumpulan:\n'
-            '• Berkas hasil berupa tautan Google Docs atau file .docx\n'
-            '• Bahasa Indonesia baku sesuai dengan konteks rekaman\n'
-            '• Batas waktu pengerjaan: 48 jam sejak tawaran diterima.';
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail Pekerjaan'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit Lowongan (Update Database)',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditJobScreen(job: currentJob),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(
               isBookmarked ? Icons.bookmark : Icons.bookmark_border,
@@ -61,9 +82,17 @@ class JobDetailScreen extends StatelessWidget {
           final isCompact = constraints.maxWidth < AppConstants.compactBreakpoint;
 
           if (isCompact) {
-            return _buildCompactDetail(context, currentId, title, employer, category, wageStr, distanceStr, description, isAlreadyActive);
+            return _buildCompactDetail(
+              context,
+              currentJob,
+              isAlreadyActive,
+            );
           } else {
-            return _buildExpandedDetail(context, currentId, title, employer, category, wageStr, distanceStr, description, isAlreadyActive);
+            return _buildExpandedDetail(
+              context,
+              currentJob,
+              isAlreadyActive,
+            );
           }
         },
       ),
@@ -72,13 +101,7 @@ class JobDetailScreen extends StatelessWidget {
 
   Widget _buildCompactDetail(
     BuildContext context,
-    String jobId,
-    String title,
-    String employer,
-    String category,
-    String wage,
-    String distance,
-    String description,
+    JobModel item,
     bool isAlreadyActive,
   ) {
     return SingleChildScrollView(
@@ -86,15 +109,15 @@ class JobDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildJobHeader(title, employer, distance, category),
+          _buildJobHeader(item),
           const SizedBox(height: 16),
           const SmartMatchBadge(score: 92, rank: 'Peringkat #1', isDetailed: true),
           const SizedBox(height: 16),
-          EscrowStatusCard(amount: wage, status: 'Locked', isDetailed: true),
+          EscrowStatusCard(amount: item.formattedWage, status: item.paymentStatus, isDetailed: true),
           const SizedBox(height: 16),
-          _buildJobDescription(description),
+          _buildJobDescription(item.description),
           const SizedBox(height: 24),
-          _buildActionButtons(context, jobId, isAlreadyActive),
+          _buildActionButtons(context, item.id, isAlreadyActive),
         ],
       ),
     );
@@ -102,13 +125,7 @@ class JobDetailScreen extends StatelessWidget {
 
   Widget _buildExpandedDetail(
     BuildContext context,
-    String jobId,
-    String title,
-    String employer,
-    String category,
-    String wage,
-    String distance,
-    String description,
+    JobModel item,
     bool isAlreadyActive,
   ) {
     return SingleChildScrollView(
@@ -122,9 +139,9 @@ class JobDetailScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildJobHeader(title, employer, distance, category),
+                _buildJobHeader(item),
                 const SizedBox(height: 20),
-                _buildJobDescription(description),
+                _buildJobDescription(item.description),
               ],
             ),
           ),
@@ -136,9 +153,9 @@ class JobDetailScreen extends StatelessWidget {
               children: [
                 const SmartMatchBadge(score: 92, rank: 'Peringkat #1', isDetailed: true),
                 const SizedBox(height: 16),
-                EscrowStatusCard(amount: wage, status: 'Locked', isDetailed: true),
+                EscrowStatusCard(amount: item.formattedWage, status: item.paymentStatus, isDetailed: true),
                 const SizedBox(height: 20),
-                _buildActionButtons(context, jobId, isAlreadyActive),
+                _buildActionButtons(context, item.id, isAlreadyActive),
               ],
             ),
           ),
@@ -147,25 +164,56 @@ class JobDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildJobHeader(String title, String employer, String distance, String category) {
+  Widget _buildJobHeader(JobModel item) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.primaryLight,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            'Kategori: $category',
-            style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold),
-          ),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                'Kategori: ${item.category}',
+                style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: item.isFromDatabase ? const Color(0xFFE0F2FE) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    item.isFromDatabase ? Icons.cloud_done : Icons.api,
+                    size: 11,
+                    color: item.isFromDatabase ? const Color(0xFF0284C7) : AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    item.dataSourceLabel,
+                    style: TextStyle(
+                      color: item.isFromDatabase ? const Color(0xFF0284C7) : AppColors.textMuted,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
-        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(item.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text('$employer • $distance', style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        Text('${item.employerName} • 📍 ${item.distanceKm} km', style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
       ],
     );
   }

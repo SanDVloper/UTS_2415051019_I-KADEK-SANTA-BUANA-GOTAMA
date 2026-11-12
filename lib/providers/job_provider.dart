@@ -194,6 +194,37 @@ class JobProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // UPDATE: Memperbarui lowongan di Database Supabase & state lokal
+  Future<bool> updateJob(String id, Map<String, dynamic> updates) async {
+    try {
+      final updated = await _repository.updateJobInDatabase(id, updates);
+      final index = _jobs.indexWhere((j) => j.id == id);
+      if (index != -1) {
+        if (updated != null) {
+          _jobs[index] = updated;
+        } else {
+          final current = _jobs[index];
+          _jobs[index] = current.copyWith(
+            title: updates['title'] as String? ?? current.title,
+            description: updates['description'] as String? ?? current.description,
+            category: updates['category'] as String? ?? current.category,
+            wage: updates['wage'] as int? ?? current.wage,
+            status: updates['status'] as String? ?? current.status,
+            paymentStatus: updates['payment_status'] as String? ?? current.paymentStatus,
+            submissionUrl: updates['submission_url'] as String? ?? current.submissionUrl,
+          );
+        }
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = 'Gagal memperbarui lowongan: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Terima Pekerjaan (Update State ke Active & Upah Locked)
   void acceptJob(String jobId) {
     final index = _jobs.indexWhere((j) => j.id == jobId);
@@ -215,6 +246,10 @@ class JobProvider extends ChangeNotifier {
         status: 'Waiting Confirmation',
         submissionUrl: submissionUrl,
       );
+      _repository.updateJobInDatabase(jobId, {
+        'status': 'Waiting Confirmation',
+        'submission_url': submissionUrl,
+      });
       notifyListeners();
     }
   }
@@ -225,8 +260,12 @@ class JobProvider extends ChangeNotifier {
     if (index != -1) {
       _jobs[index] = _jobs[index].copyWith(
         status: 'Completed',
-        paymentStatus: 'Processing',
+        paymentStatus: 'Released',
       );
+      _repository.updateJobInDatabase(jobId, {
+        'status': 'Completed',
+        'payment_status': 'Released',
+      });
       notifyListeners();
     }
   }
