@@ -4,6 +4,8 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../providers/job_provider.dart';
 import '../providers/user_provider.dart';
+import '../widgets/escrow_status_card.dart';
+import '../widgets/stat_metric_card.dart';
 
 class DashboardScreen extends StatelessWidget {
   final Function(int)? onNavigateToTab;
@@ -76,7 +78,7 @@ class DashboardScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Responsive Metric Cards
+              // Responsive Metric Cards using Reusable StatMetricCard
               Text(
                 'Ringkasan Aktivitas',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -98,35 +100,11 @@ class DashboardScreen extends StatelessWidget {
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.secondaryLight,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    'Pekerjaan Aktif • ${activeJob.status}',
-                                    style: const TextStyle(
-                                      color: AppColors.secondary,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '🔒 Upah Terkunci: ${activeJob.formattedWage}',
-                                  style: const TextStyle(
-                                    color: AppColors.secondary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                            EscrowStatusCard(
+                              amount: activeJob.formattedWage,
+                              status: activeJob.paymentStatus,
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 12),
                             Text(
                               activeJob.title,
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
@@ -200,13 +178,49 @@ class DashboardScreen extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildStatCard(activeCount, 'Pekerjaan Aktif', Icons.work_outline, AppColors.primary, AppColors.primaryLight),
+          SizedBox(
+            width: 155,
+            child: StatMetricCard(
+              value: activeCount,
+              label: 'Pekerjaan Aktif',
+              icon: Icons.work_outline,
+              iconColor: AppColors.primary,
+              backgroundColor: AppColors.primaryLight,
+            ),
+          ),
           const SizedBox(width: 10),
-          _buildStatCard(completedCount, 'Tugas Selesai', Icons.task_alt, AppColors.secondary, AppColors.secondaryLight),
+          SizedBox(
+            width: 155,
+            child: StatMetricCard(
+              value: completedCount,
+              label: 'Tugas Selesai',
+              icon: Icons.task_alt,
+              iconColor: AppColors.secondary,
+              backgroundColor: AppColors.secondaryLight,
+            ),
+          ),
           const SizedBox(width: 10),
-          _buildStatCard('94%', 'Match Score Avg', Icons.star_outline, AppColors.warning, AppColors.warningLight),
+          const SizedBox(
+            width: 155,
+            child: StatMetricCard(
+              value: '94%',
+              label: 'Match Score Avg',
+              icon: Icons.star_outline,
+              iconColor: AppColors.warning,
+              backgroundColor: AppColors.warningLight,
+            ),
+          ),
           const SizedBox(width: 10),
-          _buildStatCard(balance, 'Total Saldo', Icons.account_balance_wallet_outlined, Colors.purple, const Color(0xFFF3E8FF)),
+          SizedBox(
+            width: 155,
+            child: StatMetricCard(
+              value: balance,
+              label: 'Total Saldo',
+              icon: Icons.account_balance_wallet_outlined,
+              iconColor: Colors.purple,
+              backgroundColor: const Color(0xFFF3E8FF),
+            ),
+          ),
         ],
       ),
     );
@@ -215,46 +229,46 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildExpandedMetrics(String activeCount, String completedCount, String balance) {
     return Row(
       children: [
-        Expanded(child: _buildStatCard(activeCount, 'Pekerjaan Aktif', Icons.work_outline, AppColors.primary, AppColors.primaryLight)),
+        Expanded(
+          child: StatMetricCard(
+            value: activeCount,
+            label: 'Pekerjaan Aktif',
+            icon: Icons.work_outline,
+            iconColor: AppColors.primary,
+            backgroundColor: AppColors.primaryLight,
+          ),
+        ),
         const SizedBox(width: 14),
-        Expanded(child: _buildStatCard(completedCount, 'Tugas Selesai', Icons.task_alt, AppColors.secondary, AppColors.secondaryLight)),
+        Expanded(
+          child: StatMetricCard(
+            value: completedCount,
+            label: 'Tugas Selesai',
+            icon: Icons.task_alt,
+            iconColor: AppColors.secondary,
+            backgroundColor: AppColors.secondaryLight,
+          ),
+        ),
         const SizedBox(width: 14),
-        Expanded(child: _buildStatCard('94%', 'Rata-rata Match', Icons.star_outline, AppColors.warning, AppColors.warningLight)),
+        const Expanded(
+          child: StatMetricCard(
+            value: '94%',
+            label: 'Rata-rata Match',
+            icon: Icons.star_outline,
+            iconColor: AppColors.warning,
+            backgroundColor: AppColors.warningLight,
+          ),
+        ),
         const SizedBox(width: 14),
-        Expanded(child: _buildStatCard(balance, 'Total Saldo Diterima', Icons.account_balance_wallet_outlined, Colors.purple, const Color(0xFFF3E8FF))),
+        Expanded(
+          child: StatMetricCard(
+            value: balance,
+            label: 'Total Saldo Diterima',
+            icon: Icons.account_balance_wallet_outlined,
+            iconColor: Colors.purple,
+            backgroundColor: const Color(0xFFF3E8FF),
+          ),
+        ),
       ],
-    );
-  }
-
-  Widget _buildStatCard(String value, String label, IconData icon, Color color, Color bgColor) {
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

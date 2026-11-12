@@ -4,6 +4,8 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../models/job_model.dart';
 import '../providers/job_provider.dart';
+import '../widgets/escrow_status_card.dart';
+import '../widgets/smart_match_badge.dart';
 
 class JobDetailScreen extends StatelessWidget {
   final JobModel? job;
@@ -86,9 +88,9 @@ class JobDetailScreen extends StatelessWidget {
         children: [
           _buildJobHeader(title, employer, distance, category),
           const SizedBox(height: 16),
-          _buildSmartMatchCard(),
+          const SmartMatchBadge(score: 92, rank: 'Peringkat #1', isDetailed: true),
           const SizedBox(height: 16),
-          _buildEscrowWageCard(wage),
+          EscrowStatusCard(amount: wage, status: 'Locked', isDetailed: true),
           const SizedBox(height: 16),
           _buildJobDescription(description),
           const SizedBox(height: 24),
@@ -132,9 +134,9 @@ class JobDetailScreen extends StatelessWidget {
             flex: 4,
             child: Column(
               children: [
-                _buildSmartMatchCard(),
+                const SmartMatchBadge(score: 92, rank: 'Peringkat #1', isDetailed: true),
                 const SizedBox(height: 16),
-                _buildEscrowWageCard(wage),
+                EscrowStatusCard(amount: wage, status: 'Locked', isDetailed: true),
                 const SizedBox(height: 20),
                 _buildActionButtons(context, jobId, isAlreadyActive),
               ],
@@ -165,70 +167,6 @@ class JobDetailScreen extends StatelessWidget {
         const SizedBox(height: 4),
         Text('$employer • $distance', style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
       ],
-    );
-  }
-
-  Widget _buildSmartMatchCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.secondary, width: 2),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('⭐ Match Score: 92%', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondary, fontSize: 14)),
-              Text('Peringkat #1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.secondary)),
-            ],
-          ),
-          SizedBox(height: 8),
-          Text(
-            '✓ 5/5 Kemampuan Terpenuhi (Mengetik, Membaca, Komunikasi Teks)\n'
-            '✓ Jarak Sangat Dekat: 1.2 km dari domisili Anda\n'
-            '✓ Kompatibilitas Aksesibilitas: Instruksi 100% via teks mandiri',
-            style: TextStyle(fontSize: 12, height: 1.5),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEscrowWageCard(String wage) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.secondaryLight,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.secondary.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Nominal Upah Aman', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-              Text(wage, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.secondary)),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              '🔒 Upah Terkunci di Sistem',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.secondary),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

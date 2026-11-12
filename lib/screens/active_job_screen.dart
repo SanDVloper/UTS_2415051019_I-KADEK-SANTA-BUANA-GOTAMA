@@ -4,6 +4,7 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../providers/job_provider.dart';
 import '../providers/user_provider.dart';
+import '../widgets/escrow_status_card.dart';
 
 class ActiveJobScreen extends StatefulWidget {
   final Function(int)? onNavigateToTab;
@@ -93,26 +94,10 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                                 style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                               ),
                               const Divider(height: 24),
-                              // Escrow Card
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondaryLight,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      '🔒 Dana Terkunci di Escrow: ${activeJob.formattedWage}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondary, fontSize: 13),
-                                    ),
-                                    Text(
-                                      activeJob.paymentStatus == 'Locked' ? 'Aman Terjamin ✓' : 'Proses Pencairan ✓',
-                                      style: const TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.w600),
-                                    ),
-                                  ],
-                                ),
+                              // Reusable Escrow Card
+                              EscrowStatusCard(
+                                amount: activeJob.formattedWage,
+                                status: activeJob.paymentStatus,
                               ),
                             ],
                           ),
