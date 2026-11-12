@@ -41,18 +41,27 @@ class JobCatalogScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           const Text(
-                            'Disaring berdasarkan Smart Matching keahlian & lokasi Anda',
+                            'Data real-time disinkronkan dari REST API server',
                             style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                           ),
                         ],
                       ),
                     ),
-                    Chip(
-                      backgroundColor: AppColors.primaryLight,
-                      label: Text(
-                        isCompact ? 'Layout: List (1 Col)' : 'Layout: Grid (2 Col)',
-                        style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600),
-                      ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.refresh, color: AppColors.primary),
+                          tooltip: 'Muat Ulang dari REST API',
+                          onPressed: () => jobProvider.fetchJobs(),
+                        ),
+                        Chip(
+                          backgroundColor: AppColors.primaryLight,
+                          label: Text(
+                            isCompact ? 'List (1 Col)' : 'Grid (2 Col)',
+                            style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -87,7 +96,10 @@ class JobCatalogScreen extends StatelessWidget {
 
                 // State Handling: Loading, Error, Empty, Loaded
                 Expanded(
-                  child: _buildStateContent(context, jobProvider, jobs, isCompact),
+                  child: RefreshIndicator(
+                    onRefresh: () => jobProvider.fetchJobs(),
+                    child: _buildStateContent(context, jobProvider, jobs, isCompact),
+                  ),
                 ),
               ],
             ),
@@ -99,7 +111,19 @@ class JobCatalogScreen extends StatelessWidget {
 
   Widget _buildStateContent(BuildContext context, JobProvider provider, List<JobModel> jobs, bool isCompact) {
     if (provider.state == ViewState.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 14),
+            Text(
+              'Menghubungkan ke REST API Endpoint...',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+          ],
+        ),
+      );
     }
 
     if (provider.state == ViewState.error) {
@@ -107,13 +131,18 @@ class JobCatalogScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.danger),
+            const Icon(Icons.cloud_off_outlined, size: 48, color: AppColors.danger),
             const SizedBox(height: 12),
-            Text('Terjadi kesalahan: ${provider.errorMessage ?? "Gagal memuat data"}'),
-            const SizedBox(height: 12),
-            ElevatedButton(
+            Text(
+              'Gagal memuat data dari server:\n${provider.errorMessage ?? "Koneksi terputus"}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.danger, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
               onPressed: () => provider.fetchJobs(),
-              child: const Text('Coba Lagi'),
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Coba Lagi'),
             ),
           ],
         ),
@@ -143,6 +172,7 @@ class JobCatalogScreen extends StatelessWidget {
 
   Widget _buildListView(BuildContext context, JobProvider provider, List<JobModel> jobs) {
     return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       itemCount: jobs.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -166,6 +196,7 @@ class JobCatalogScreen extends StatelessWidget {
 
   Widget _buildGridView(BuildContext context, JobProvider provider, List<JobModel> jobs) {
     return GridView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 1.5,

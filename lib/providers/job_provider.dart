@@ -1,78 +1,26 @@
 import 'package:flutter/material.dart';
 import '../models/job_model.dart';
+import '../repositories/job_repository.dart';
 
 enum ViewState { initial, loading, loaded, error, empty }
 
 class JobProvider extends ChangeNotifier {
+  final JobRepository _repository;
+
+  JobProvider({JobRepository? repository}) : _repository = repository ?? JobRepository();
+
   ViewState _state = ViewState.initial;
   String? _errorMessage;
 
-  final List<JobModel> _jobs = [
-    JobModel(
-      id: 'job-001',
-      title: 'Transkripsi Audio Webinar Bahasa Indonesia',
-      description: 'Mengetik naskah rekaman webinar 45 menit ke dalam Google Docs dengan ejaan yang rapi.',
-      category: 'Transkripsi & Pengetikan',
-      wage: 50000,
-      employerName: 'PT Inovasi Inklusif',
-      location: 'Denpasar Barat',
-      distanceKm: 1.2,
-      requiredSkills: const ['Mengetik Cepat', 'Membaca Teks', 'Komunikasi Teks'],
-      status: 'Active',
-      paymentStatus: 'Locked',
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    JobModel(
-      id: 'job-002',
-      title: 'Input Data Rekam Pasien Klinik',
-      description: 'Memindahkan berkas fisik ke format spreadsheet Google Sheet online secara akurat.',
-      category: 'Entri Data & Spreadsheet',
-      wage: 75000,
-      employerName: 'Klinik Harapan Sehat',
-      location: 'Denpasar Selatan',
-      distanceKm: 2.5,
-      requiredSkills: const ['Excel', 'Ketelitian', 'Fleksibel'],
-      status: 'Available',
-      paymentStatus: 'Locked',
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-    ),
-    JobModel(
-      id: 'job-003',
-      title: 'Desain Konten Sosialisasi Disabilitas',
-      description: 'Membuat 3 poster edukasi menggunakan template Canva siap pakai.',
-      category: 'Desain Grafis',
-      wage: 100000,
-      employerName: 'Yayasan Peduli Sesama',
-      location: 'Denpasar Timur',
-      distanceKm: 3.8,
-      requiredSkills: const ['Canva', 'Komunikasi Teks'],
-      status: 'Available',
-      paymentStatus: 'Locked',
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    JobModel(
-      id: 'job-004',
-      title: 'Pemeriksaan Ejaan & Koreksi Naskah Buku',
-      description: 'Proofreading bab pengantar buku cerita anak berbahasa Indonesia.',
-      category: 'Pemeriksaan Teks',
-      wage: 60000,
-      employerName: 'Penerbit Mandiri',
-      location: 'Denpasar Utara',
-      distanceKm: 4.1,
-      requiredSkills: const ['Bahasa Indonesia', 'Koreksi Teks'],
-      status: 'Available',
-      paymentStatus: 'Locked',
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-  ];
+  final List<JobModel> _jobs = [];
 
   // Shared State: Favorit / Bookmark
-  final Set<String> _bookmarkedJobIds = {'job-001'};
+  final Set<String> _bookmarkedJobIds = {'job-api-1'};
 
   // Search & Filter State
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
-  String? _activeJobId = 'job-001';
+  String? _activeJobId = 'job-api-1';
 
   // Getters
   ViewState get state => _state;
@@ -105,17 +53,23 @@ class JobProvider extends ChangeNotifier {
     }
   }
 
-  // Fetch Jobs dengan penanganan loading state, empty state, dan error state
+  // Fetch Jobs dari REST API via JobRepository
   Future<void> fetchJobs() async {
     _state = ViewState.loading;
     notifyListeners();
 
     try {
-      await Future.delayed(const Duration(milliseconds: 600)); // Simulasi network delay
+      final fetchedJobs = await _repository.fetchJobs();
+      _jobs.clear();
+      _jobs.addAll(fetchedJobs);
+
       if (_jobs.isEmpty) {
         _state = ViewState.empty;
       } else {
         _state = ViewState.loaded;
+        if (_activeJobId == null || !_jobs.any((j) => j.id == _activeJobId)) {
+          _activeJobId = _jobs.first.id;
+        }
       }
     } catch (e) {
       _errorMessage = e.toString();
