@@ -34,36 +34,58 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
     super.dispose();
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      final wage = int.tryParse(_wageController.text.trim()) ?? 50000;
-      final newJob = JobModel(
-        id: 'job-${DateTime.now().millisecondsSinceEpoch}',
-        title: _titleController.text.trim(),
-        description: _descController.text.trim(),
-        category: _selectedCategory,
-        wage: wage,
-        employerName: 'PT Inovasi Inklusif',
-        location: 'Denpasar Barat',
-        distanceKm: 1.5,
-        requiredSkills: [_selectedCategory.split(' ').first, 'Komunikasi Teks'],
-        status: 'Available',
-        paymentStatus: 'Locked',
-        createdAt: DateTime.now(),
-      );
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      context.read<JobProvider>().addJob(newJob);
+    final wage = int.tryParse(_wageController.text.trim()) ?? 50000;
+    final newJob = JobModel(
+      id: 'job-sp-${DateTime.now().millisecondsSinceEpoch}',
+      title: _titleController.text.trim(),
+      description: _descController.text.trim(),
+      category: _selectedCategory,
+      wage: wage,
+      employerName: 'PT Inovasi Inklusif',
+      location: 'Denpasar Barat',
+      distanceKm: 1.5,
+      requiredSkills: [_selectedCategory.split(' ').first, 'Komunikasi Teks'],
+      status: 'Available',
+      paymentStatus: 'Locked',
+      createdAt: DateTime.now(),
+    );
 
+    final success = await context.read<JobProvider>().createJob(newJob);
+
+    if (!mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lowongan "${newJob.title}" berhasil dipublikasikan & masuk ke State Manajemen!'),
+          content: Row(
+            children: [
+              const Icon(Icons.cloud_done, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Lowongan "${newJob.title}" berhasil di-insert ke Database Supabase!',
+                ),
+              ),
+            ],
+          ),
           backgroundColor: AppColors.secondary,
+          duration: const Duration(seconds: 3),
         ),
       );
 
       _titleController.clear();
       _descController.clear();
       _wageController.clear();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal menyimpan data ke database. Silakan coba lagi.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
     }
   }
 
@@ -141,6 +163,26 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                   '• Made Suardana — 92% Cocok (1.2 km)\n• Ni Putu Ayu — 86% Cocok (2.8 km)',
                   style: TextStyle(fontSize: 12, height: 1.5),
                 ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.cloud_sync, color: AppColors.primary, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Database Engine: Supabase PostgreSQL Realtime CRUD',
+                          style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -150,14 +192,32 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   }
 
   Widget _buildFormContent(BuildContext context) {
+    final isCreating = context.watch<JobProvider>().isCreatingJob;
+
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Posting Lowongan Baru',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Posting Lowongan Baru',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryLight,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'Database Create (POST)',
+                  style: TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           const Text('Tentukan kriteria tugas, kebutuhan skill, dan nominal upah terjamin', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -221,9 +281,25 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
           const SizedBox(height: 20),
 
           // Submit Button
-          ElevatedButton(
-            onPressed: _submitForm,
-            child: const Text('Publikasikan Lowongan & Cari Worker'),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: isCreating ? null : _submitForm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondary,
+              ),
+              child: isCreating
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Publikasikan Lowongan ke Database Supabase'),
+            ),
           ),
         ],
       ),

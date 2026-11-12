@@ -1,12 +1,36 @@
 import 'package:flutter/foundation.dart';
 import '../models/job_model.dart';
 import '../services/api_service.dart';
+import '../services/supabase_service.dart';
 
-/// Repository layer that mediates between the API Service and Application Providers
+/// Repository layer that mediates between the API/Database Services and Application Providers
 class JobRepository {
   final ApiService _apiService;
+  final SupabaseService _supabaseService;
 
-  JobRepository({ApiService? apiService}) : _apiService = apiService ?? ApiService();
+  JobRepository({ApiService? apiService, SupabaseService? supabaseService})
+      : _apiService = apiService ?? ApiService(),
+        _supabaseService = supabaseService ?? SupabaseService();
+
+  /// CREATE: Menyimpan lowongan pekerjaan baru ke Database Supabase
+  Future<JobModel> createJob(JobModel job) async {
+    return await _supabaseService.insertJob(job);
+  }
+
+  /// READ (Database): Mengambil daftar lowongan dari Database Supabase
+  Future<List<JobModel>> fetchJobsFromDatabase() async {
+    return await _supabaseService.fetchJobs();
+  }
+
+  /// UPDATE: Memperbarui data lowongan di Database Supabase
+  Future<JobModel?> updateJobInDatabase(String id, Map<String, dynamic> updates) async {
+    return await _supabaseService.updateJob(id, updates);
+  }
+
+  /// DELETE: Menghapus data lowongan dari Database Supabase
+  Future<bool> deleteJobFromDatabase(String id) async {
+    return await _supabaseService.deleteJob(id);
+  }
 
   /// Curated titles to map JSONPlaceholder posts to realistic inclusive micro-jobs
   static const List<Map<String, dynamic>> _jobTemplates = [

@@ -17,6 +17,9 @@ class JobProvider extends ChangeNotifier {
   // Shared State: Favorit / Bookmark
   final Set<String> _bookmarkedJobIds = {'job-api-1'};
 
+  bool _isCreatingJob = false;
+  bool get isCreatingJob => _isCreatingJob;
+
   // Search & Filter State
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
@@ -115,7 +118,25 @@ class JobProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Tambah Lowongan (Create)
+  // Tambah Lowongan (Create) langsung ke Database Supabase & State Lokal
+  Future<bool> createJob(JobModel newJob) async {
+    _isCreatingJob = true;
+    notifyListeners();
+
+    try {
+      final savedJob = await _repository.createJob(newJob);
+      _jobs.insert(0, savedJob);
+      _isCreatingJob = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Gagal menyimpan ke database: $e';
+      _isCreatingJob = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   void addJob(JobModel newJob) {
     _jobs.insert(0, newJob);
     notifyListeners();
