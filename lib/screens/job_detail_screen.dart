@@ -152,13 +152,20 @@ class JobDetailScreen extends StatelessWidget {
             ),
             tooltip: isBookmarked ? 'Hapus dari Favorit' : 'Simpan ke Favorit',
             onPressed: () {
+              final wasSaved = jobProvider.isBookmarked(currentId);
               jobProvider.toggleBookmark(currentId);
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    isBookmarked ? 'Pekerjaan dihapus dari Favorit' : 'Pekerjaan disimpan ke Favorit!',
+                    wasSaved ? 'Pekerjaan dihapus dari Favorit' : 'Pekerjaan disimpan ke Favorit!',
                   ),
-                  duration: const Duration(seconds: 1),
+                  action: SnackBarAction(
+                    label: 'URUNGKAN',
+                    textColor: Colors.amber,
+                    onPressed: () => jobProvider.toggleBookmark(currentId),
+                  ),
+                  duration: const Duration(seconds: 3),
                 ),
               );
             },

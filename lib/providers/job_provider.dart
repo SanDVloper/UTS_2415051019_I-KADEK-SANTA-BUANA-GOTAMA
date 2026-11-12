@@ -24,6 +24,8 @@ class JobProvider extends ChangeNotifier {
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
   String _selectedSourceFilter = 'Semua';
+  String _sortBy = 'rekomendasi'; // 'rekomendasi', 'wage_desc', 'distance_asc'
+  int _minWage = 10000;
   String? _activeJobId = 'job-api-1';
 
   // Getters
@@ -33,15 +35,17 @@ class JobProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
   String get selectedSourceFilter => _selectedSourceFilter;
+  String get sortBy => _sortBy;
+  int get minWage => _minWage;
 
   List<JobModel> get allJobs => _jobs;
 
   int get databaseJobCount => _jobs.where((j) => j.isFromDatabase).length;
   int get apiJobCount => _jobs.where((j) => !j.isFromDatabase).length;
 
-  // Filtered Jobs Getter (Sesuai search query, kategori, dan sumber data)
+  // Filtered Jobs Getter (Sesuai search query, kategori, sumber data, upah minimum & sorting)
   List<JobModel> get filteredJobs {
-    return _jobs.where((job) {
+    final list = _jobs.where((job) {
       final matchesQuery = job.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           job.requiredSkills.any((s) => s.toLowerCase().contains(_searchQuery.toLowerCase())) ||
           job.employerName.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -52,8 +56,18 @@ class JobProvider extends ChangeNotifier {
           (_selectedSourceFilter == 'Supabase Cloud' && job.isFromDatabase) ||
           (_selectedSourceFilter == 'REST API' && !job.isFromDatabase);
 
-      return matchesQuery && matchesCategory && matchesSource;
+      final matchesWage = job.wage >= _minWage;
+
+      return matchesQuery && matchesCategory && matchesSource && matchesWage;
     }).toList();
+
+    if (_sortBy == 'wage_desc') {
+      list.sort((a, b) => b.wage.compareTo(a.wage));
+    } else if (_sortBy == 'distance_asc') {
+      list.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
+    }
+
+    return list;
   }
 
   // Active Job Getter (Pekerjaan aktif yang sedang dikerjakan)
@@ -153,6 +167,25 @@ class JobProvider extends ChangeNotifier {
 
   void setSourceFilter(String source) {
     _selectedSourceFilter = source;
+    notifyListeners();
+  }
+
+  void setSortBy(String sort) {
+    _sortBy = sort;
+    notifyListeners();
+  }
+
+  void setMinWage(int wage) {
+    _minWage = wage;
+    notifyListeners();
+  }
+
+  void resetFilters() {
+    _searchQuery = '';
+    _selectedCategory = 'Semua';
+    _selectedSourceFilter = 'Semua';
+    _sortBy = 'rekomendasi';
+    _minWage = 10000;
     notifyListeners();
   }
 

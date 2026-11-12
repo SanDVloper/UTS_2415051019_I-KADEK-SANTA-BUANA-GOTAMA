@@ -31,6 +31,64 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
     });
   }
 
+  void _showEscrowInfoBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: AppColors.secondaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.shield, color: AppColors.secondary, size: 28),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Protokol Escrow Guard KaryaSetara', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('Keamanan Upah Terjamin 100% untuk Pekerja', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            const Text(
+              '1. Deposit Terkunci: Pemberi kerja wajib mendepositkan upah penuh sebelum tugas dapat diambil.\n'
+              '2. Pengerjaan Aman: Dana tidak dapat ditarik sepihak selama proses pengerjaan berjalan.\n'
+              '3. Verifikasi Hasil: Employer meninjau hasil tugas sesuai kriteria kesepakatan.\n'
+              '4. Pencairan Otomatis: Upah diteruskan ke saldo pekerja tanpa potongan liar.',
+              style: TextStyle(fontSize: 13, height: 1.6, color: AppColors.textMain),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Saya Mengerti'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screens = [
@@ -54,11 +112,7 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
                 IconButton(
                   tooltip: 'Status Escrow Aman',
                   icon: const Icon(Icons.shield_outlined, color: AppColors.secondary),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Sistem Escrow KaryaSetara Aktif: Upah aman terjamin.')),
-                    );
-                  },
+                  onPressed: () => _showEscrowInfoBottomSheet(context),
                 ),
               ],
             ),
@@ -198,19 +252,23 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
                       title: Text(_tabTitles[_selectedIndex]),
                       elevation: 0,
                       actions: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondaryLight,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.shield, color: AppColors.secondary, size: 16),
-                              SizedBox(width: 6),
-                              Text('Escrow Guard Active', style: TextStyle(color: AppColors.secondary, fontSize: 12, fontWeight: FontWeight.bold)),
-                            ],
+                        InkWell(
+                          onTap: () => _showEscrowInfoBottomSheet(context),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondaryLight,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.shield, color: AppColors.secondary, size: 16),
+                                SizedBox(width: 6),
+                                Text('Escrow Guard Active', style: TextStyle(color: AppColors.secondary, fontSize: 12, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
                           ),
                         ),
                         IconButton(

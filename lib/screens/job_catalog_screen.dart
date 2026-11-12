@@ -23,9 +23,9 @@ class JobCatalogScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Apakah Anda yakin ingin menghapus data lowongan ini dari Database Supabase?',
-              style: const TextStyle(fontSize: 13, color: AppColors.textMain),
+              style: TextStyle(fontSize: 13, color: AppColors.textMain),
             ),
             const SizedBox(height: 10),
             Container(
@@ -53,6 +53,142 @@ class JobCatalogScreen extends StatelessWidget {
       ),
     );
     return result ?? false;
+  }
+
+  void _showFilterBottomSheet(BuildContext context, JobProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (modalCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Filter & Pengurutan Lowongan',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(modalCtx),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  const SizedBox(height: 10),
+
+                  // Opsi Pengurutan
+                  const Text('Urutkan Berdasarkan:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('⭐ Rekomendasi Match'),
+                        selected: provider.sortBy == 'rekomendasi',
+                        onSelected: (v) {
+                          if (v) {
+                            provider.setSortBy('rekomendasi');
+                            setModalState(() {});
+                          }
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('💰 Upah Tertinggi'),
+                        selected: provider.sortBy == 'wage_desc',
+                        onSelected: (v) {
+                          if (v) {
+                            provider.setSortBy('wage_desc');
+                            setModalState(() {});
+                          }
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('📍 Jarak Terdekat'),
+                        selected: provider.sortBy == 'distance_asc',
+                        onSelected: (v) {
+                          if (v) {
+                            provider.setSortBy('distance_asc');
+                            setModalState(() {});
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Slider Upah Minimum
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Filter Upah Minimum:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text(
+                        'Rp ${provider.minWage ~/ 1000}rb+',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondary),
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: provider.minWage.toDouble(),
+                    min: 10000,
+                    max: 120000,
+                    divisions: 11,
+                    label: 'Rp ${provider.minWage ~/ 1000}rb',
+                    onChanged: (val) {
+                      provider.setMinWage(val.toInt());
+                      setModalState(() {});
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Bottom Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            provider.resetFilters();
+                            Navigator.pop(modalCtx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Filter pencarian di-reset ke default.')),
+                            );
+                          },
+                          child: const Text('Reset Filter'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(modalCtx),
+                          child: const Text('Terapkan Filter'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -181,30 +317,42 @@ class JobCatalogScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
-                // Search Bar
-                TextField(
-                  onChanged: (val) => jobProvider.setSearchQuery(val),
-                  decoration: InputDecoration(
-                    hintText: 'Cari lowongan, keahlian, atau instansi...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: jobProvider.searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () => jobProvider.setSearchQuery(''),
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: AppColors.surface,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.border),
+                // Search Bar with Filter BottomSheet Button
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        onChanged: (val) => jobProvider.setSearchQuery(val),
+                        decoration: InputDecoration(
+                          hintText: 'Cari lowongan, keahlian, atau instansi...',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: jobProvider.searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () => jobProvider.setSearchQuery(''),
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: AppColors.surface,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                        ),
+                      ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.border),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.filter_list_rounded),
+                      tooltip: 'Filter Lanjutan & Pengurutan',
+                      onPressed: () => _showFilterBottomSheet(context, jobProvider),
                     ),
-                  ),
+                  ],
                 ),
                 const SizedBox(height: 10),
 
@@ -273,14 +421,10 @@ class JobCatalogScreen extends StatelessWidget {
             ? 'Tidak ada lowongan yang cocok dengan kata kunci "${provider.searchQuery}".'
             : provider.selectedSourceFilter == 'Supabase Cloud'
                 ? 'Belum ada data lowongan di Supabase Database. Anda dapat membuat lowongan baru melalui tab "Buat Job".'
-                : 'Belum ada lowongan pekerjaan yang tersedia saat ini.',
-        actionLabel: provider.searchQuery.isNotEmpty ? 'Reset Pencarian' : 'Muat Ulang Data',
+                : 'Belum ada lowongan pekerjaan yang memenuhi filter saat ini.',
+        actionLabel: provider.searchQuery.isNotEmpty ? 'Reset Pencarian' : 'Reset Semua Filter',
         onAction: () {
-          if (provider.searchQuery.isNotEmpty) {
-            provider.setSearchQuery('');
-          } else {
-            provider.fetchJobs();
-          }
+          provider.resetFilters();
         },
       );
     }
@@ -331,7 +475,24 @@ class JobCatalogScreen extends StatelessWidget {
           child: JobCard(
             job: item,
             isBookmarked: provider.isBookmarked(item.id),
-            onBookmarkToggle: () => provider.toggleBookmark(item.id),
+            onBookmarkToggle: () {
+              final wasSaved = provider.isBookmarked(item.id);
+              provider.toggleBookmark(item.id);
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    wasSaved ? 'Pekerjaan dihapus dari Favorit' : 'Pekerjaan disimpan ke Favorit!',
+                  ),
+                  action: SnackBarAction(
+                    label: 'URUNGKAN',
+                    textColor: Colors.amber,
+                    onPressed: () => provider.toggleBookmark(item.id),
+                  ),
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            },
             onTap: () {
               Navigator.push(
                 context,
@@ -361,7 +522,24 @@ class JobCatalogScreen extends StatelessWidget {
         return JobCard(
           job: item,
           isBookmarked: provider.isBookmarked(item.id),
-          onBookmarkToggle: () => provider.toggleBookmark(item.id),
+          onBookmarkToggle: () {
+            final wasSaved = provider.isBookmarked(item.id);
+            provider.toggleBookmark(item.id);
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  wasSaved ? 'Pekerjaan dihapus dari Favorit' : 'Pekerjaan disimpan ke Favorit!',
+                ),
+                action: SnackBarAction(
+                  label: 'URUNGKAN',
+                  textColor: Colors.amber,
+                  onPressed: () => provider.toggleBookmark(item.id),
+                ),
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          },
           onTap: () {
             Navigator.push(
               context,
